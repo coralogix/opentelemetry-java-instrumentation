@@ -4,10 +4,12 @@ plugins {
 
 dependencies {
   implementation("io.opentelemetry.contrib:opentelemetry-aws-xray-propagator")
+  implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
 
   library("software.amazon.awssdk:aws-core:2.2.0")
   library("software.amazon.awssdk:sqs:2.2.0")
   library("software.amazon.awssdk:sns:2.2.0")
+  library("software.amazon.awssdk:lambda:2.2.0")
   library("software.amazon.awssdk:aws-json-protocol:2.2.0")
   compileOnly(project(":muzzle")) // For @NoMuzzle
 
