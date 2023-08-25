@@ -8,8 +8,8 @@ package io.opentelemetry.instrumentation.awssdk.v2_2;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapPropagator;
 import io.opentelemetry.javaagent.tooling.muzzle.NoMuzzle;
-import software.amazon.awssdk.core.SdkRequest;
 import javax.annotation.Nullable;
+import software.amazon.awssdk.core.SdkRequest;
 
 final class LambdaAccess {
   private LambdaAccess() {}
@@ -20,7 +20,6 @@ final class LambdaAccess {
   @NoMuzzle
   public static SdkRequest modifyRequest(
       SdkRequest request, Context otelContext, TextMapPropagator messagingPropagator) {
-    System.out.println("LambdaAccess.modifyRequest: enabled: "+ enabled);
     return enabled ? LambdaImpl.modifyRequest(request, otelContext, messagingPropagator) : null;
   }
 }

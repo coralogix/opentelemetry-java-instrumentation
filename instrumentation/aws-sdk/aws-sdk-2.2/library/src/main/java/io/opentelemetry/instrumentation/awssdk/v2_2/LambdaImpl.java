@@ -5,8 +5,6 @@
 
 package io.opentelemetry.instrumentation.awssdk.v2_2;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opentelemetry.context.Context;
@@ -41,16 +39,11 @@ final class LambdaImpl {
   @Nullable
   static SdkRequest modifyRequest(
       SdkRequest request, Context otelContext, TextMapPropagator messagingPropagator) {
-    System.out.println(
-        "LambdaImpl.modifyRequest " + request.getClass().getCanonicalName() + " from "
-            + request.getClass().getClassLoader() + "messagingPropagator" + messagingPropagator);
-
     if (messagingPropagator == null) {
       return null;
     }
 
     if (request instanceof InvokeRequest) {
-      System.out.println("injectIntoInvokeRequest");
       return injectIntoInvokeRequest((InvokeRequest) request, otelContext, messagingPropagator);
     } else {
       return null;
@@ -109,7 +102,7 @@ final class LambdaImpl {
       if (base64ClientContext == null) {
         return null;
       } else {
-        String json = new String(Base64.getDecoder().decode(base64ClientContext), UTF_8);
+        byte[] json = Base64.getDecoder().decode(base64ClientContext);
         TypeReference<HashMap<String, Object>> typeRef
             = new TypeReference<HashMap<String, Object>>() {};
         return OBJECT_MAPPER.readValue(json, typeRef);
@@ -123,8 +116,8 @@ final class LambdaImpl {
   private static String serialiseClientContext(Map<String, Object> context)
       throws Exception {
     try {
-      String jsonString = OBJECT_MAPPER.writeValueAsString(context);
-      return Base64.getEncoder().encodeToString(jsonString.getBytes(UTF_8));
+      byte[] json = OBJECT_MAPPER.writeValueAsBytes(context);
+      return Base64.getEncoder().encodeToString(json);
     } catch (Throwable e) {
       throw new Exception("Failed to serialise client context " + context, e);
     }
