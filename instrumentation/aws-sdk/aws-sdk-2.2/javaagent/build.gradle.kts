@@ -12,6 +12,7 @@ muzzle {
     extraDependency("software.amazon.awssdk:protocol-core")
     excludeInstrumentationName("aws-sdk-2.2-sqs")
     excludeInstrumentationName("aws-sdk-2.2-sns")
+    excludeInstrumentationName("aws-sdk-2.2-lambda")
 
     // several software.amazon.awssdk artifacts are missing for this version
     skip("2.17.200")
@@ -42,6 +43,7 @@ muzzle {
     extraDependency("software.amazon.awssdk:protocol-core")
 
     excludeInstrumentationName("aws-sdk-2.2-sns")
+    excludeInstrumentationName("aws-sdk-2.2-lambda")
 
     // several software.amazon.awssdk artifacts are missing for this version
     skip("2.17.200")
@@ -56,6 +58,22 @@ muzzle {
     extraDependency("software.amazon.awssdk:protocol-core")
 
     excludeInstrumentationName("aws-sdk-2.2-sqs")
+    excludeInstrumentationName("aws-sdk-2.2-lambda")
+
+    // several software.amazon.awssdk artifacts are missing for this version
+    skip("2.17.200")
+  }
+
+  pass {
+    group.set("software.amazon.awssdk")
+    module.set("lambda")
+    versions.set("[2.2.0,)")
+    // Used by all SDK services, the only case it isn't is an SDK extension such as a custom HTTP
+    // client, which is not target of instrumentation anyways.
+    extraDependency("software.amazon.awssdk:protocol-core")
+
+    excludeInstrumentationName("aws-sdk-2.2-sqs")
+    excludeInstrumentationName("aws-sdk-2.2-sns")
 
     // several software.amazon.awssdk artifacts are missing for this version
     skip("2.17.200")
@@ -82,6 +100,7 @@ dependencies {
   testLibrary("software.amazon.awssdk:sqs:2.2.0")
   testLibrary("software.amazon.awssdk:sns:2.2.0")
   testLibrary("software.amazon.awssdk:ses:2.2.0")
+  testLibrary("software.amazon.awssdk:lambda:2.2.0")
 }
 
 tasks {
