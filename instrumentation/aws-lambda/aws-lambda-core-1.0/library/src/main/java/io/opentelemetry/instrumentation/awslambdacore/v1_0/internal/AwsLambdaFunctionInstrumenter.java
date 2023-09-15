@@ -8,6 +8,7 @@ package io.opentelemetry.instrumentation.awslambdacore.v1_0.internal;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapGetter;
+import io.opentelemetry.context.propagation.TextMapPropagator;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.api.internal.ContextPropagationDebug;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
@@ -49,10 +50,21 @@ public class AwsLambdaFunctionInstrumenter {
   public Context extract(AwsLambdaRequest input) {
     ContextPropagationDebug.debugContextLeakIfEnabled();
 
-    return openTelemetry
-        .getPropagators()
-        .getTextMapPropagator()
-        .extract(Context.root(), input.getHeaders(), MapGetter.INSTANCE);
+    TextMapPropagator propagator = openTelemetry.getPropagators().getTextMapPropagator();
+    Context root = Context.root();
+
+    Context contextFromHeaders = propagator.extract(root, input.getHeaders(), MapGetter.INSTANCE);
+    if (contextFromHeaders != root){
+      return contextFromHeaders;
+    }
+
+    if (input.getAwsContext() != null &&
+        input.getAwsContext().getClientContext() != null &&
+        input.getAwsContext().getClientContext().getCustom() != null) {
+      Map<String, String> custom = input.getAwsContext().getClientContext().getCustom();
+      return propagator.extract(root, custom, MapGetter.INSTANCE);
+    }
+    return root;
   }
 
   private enum MapGetter implements TextMapGetter<Map<String, String>> {
