@@ -6,6 +6,7 @@
 package io.opentelemetry.instrumentation.awssdk.v2_2;
 
 import static io.opentelemetry.instrumentation.awssdk.v2_2.AwsSdkRequestType.DYNAMODB;
+import static io.opentelemetry.instrumentation.awssdk.v2_2.InputStreamCapture.toByteArrayWithLimit;
 
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
@@ -14,9 +15,16 @@ import io.opentelemetry.context.Scope;
 import io.opentelemetry.context.propagation.TextMapPropagator;
 import io.opentelemetry.contrib.awsxray.propagator.AwsXrayPropagator;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
+import io.opentelemetry.instrumentation.api.internal.ConfigPropertiesUtil;
 import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.core.ClientType;
 import software.amazon.awssdk.core.SdkRequest;
@@ -26,11 +34,14 @@ import software.amazon.awssdk.core.interceptor.ExecutionAttribute;
 import software.amazon.awssdk.core.interceptor.ExecutionAttributes;
 import software.amazon.awssdk.core.interceptor.ExecutionInterceptor;
 import software.amazon.awssdk.core.interceptor.SdkExecutionAttribute;
+import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.http.SdkHttpRequest;
 import software.amazon.awssdk.http.SdkHttpResponse;
 
 /** AWS request execution interceptor. */
 final class TracingExecutionInterceptor implements ExecutionInterceptor {
+
+  private static final Logger logger = LoggerFactory.getLogger(TracingExecutionInterceptor.class);
 
   // the class name is part of the attribute name, so that it will be shaded when used in javaagent
   // instrumentation, and won't conflict with usage outside javaagent instrumentation
@@ -44,6 +55,13 @@ final class TracingExecutionInterceptor implements ExecutionInterceptor {
       new ExecutionAttribute<>(TracingExecutionInterceptor.class.getName() + ".SdkHttpRequest");
   static final ExecutionAttribute<SdkRequest> SDK_REQUEST_ATTRIBUTE =
       new ExecutionAttribute<>(TracingExecutionInterceptor.class.getName() + ".SdkRequest");
+
+  private static final String RPC_REQUEST_PAYLOAD = "rpc.request.payload";
+  private static final String RPC_RESPONSE_PAYLOAD = "rpc.response.payload";
+
+  private static final int DEFAULT_OTEL_PAYLOAD_SIZE_LIMIT = 50 * 1024;
+  private static final int OTEL_PAYLOAD_SIZE_LIMIT =
+      ConfigPropertiesUtil.getInt("otel.payload-size-limit", DEFAULT_OTEL_PAYLOAD_SIZE_LIMIT);
 
   private final Instrumenter<ExecutionAttributes, SdkHttpResponse> requestInstrumenter;
   private final Instrumenter<ExecutionAttributes, SdkHttpResponse> consumerInstrumenter;
@@ -171,7 +189,26 @@ final class TracingExecutionInterceptor implements ExecutionInterceptor {
     // We ought to pass the parent of otelContext here, but we didn't store it, and it shouldn't
     // make a difference (unless we start supporting the http.resend_count attribute in this
     // instrumentation, which, logically, we can't on this level of abstraction)
-    onHttpRequestAvailable(executionAttributes, otelContext, Span.fromContext(otelContext));
+    Span span = Span.fromContext(otelContext);
+    onHttpRequestAvailable(executionAttributes, otelContext, span);
+
+    addRequestPayloadAttribute(context, span);
+  }
+
+  // TODO this doesn't add payload for SQS send
+  private static void addRequestPayloadAttribute(Context.BeforeTransmission context, Span span) {
+    Optional<RequestBody> requestBody = context.requestBody();
+    if (requestBody.isPresent()) {
+      RequestBody body = requestBody.get();
+      try (InputStream is = body.contentStreamProvider().newStream()) {
+        // This may split the payload in the middle of a UTF-8 character, but that doesn't cause any issues other than showing a special unicode replacement character.
+        byte[] bytes = toByteArrayWithLimit(is, OTEL_PAYLOAD_SIZE_LIMIT);
+        String string = new String(bytes, StandardCharsets.UTF_8);
+        span.setAttribute(RPC_REQUEST_PAYLOAD, string);
+      } catch (IOException e) {
+        logger.debug("Failed to create 'rpc.request.payload' attribute due to:", e);
+      }
+    }
   }
 
   private static void onHttpResponseAvailable(
@@ -231,6 +268,28 @@ final class TracingExecutionInterceptor implements ExecutionInterceptor {
       if (operation != null) {
         span.setAttribute(SemanticAttributes.DB_OPERATION, operation);
       }
+    }
+  }
+
+  @Override
+  public Optional<InputStream> modifyHttpResponseContent(Context.ModifyHttpResponse context,
+      ExecutionAttributes executionAttributes) {
+    Optional<InputStream> content = ExecutionInterceptor.super.modifyHttpResponseContent(context,
+        executionAttributes);
+
+    io.opentelemetry.context.Context otelContext = getContext(executionAttributes);
+    if (otelContext == null) {
+      return content;
+    }
+
+    if (content.isPresent()) {
+      InputStreamCapture capture = InputStreamCapture.capture(content.get(), OTEL_PAYLOAD_SIZE_LIMIT);
+      Span span = Span.fromContext(otelContext);
+      span.setAttribute(RPC_RESPONSE_PAYLOAD, new String(capture.capturedData, StandardCharsets.UTF_8));
+
+      return Optional.of(capture.inputStream);
+    } else {
+      return Optional.empty();
     }
   }
 
