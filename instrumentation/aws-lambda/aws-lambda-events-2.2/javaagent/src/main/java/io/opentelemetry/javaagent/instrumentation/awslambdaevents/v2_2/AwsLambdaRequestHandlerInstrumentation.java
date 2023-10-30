@@ -15,6 +15,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 import io.opentelemetry.context.Scope;
+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
 import io.opentelemetry.javaagent.bootstrap.OpenTelemetrySdkAccess;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;
@@ -51,11 +52,13 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
   @SuppressWarnings("unused")
   public static class HandleRequestAdvice {
 
+    @SuppressWarnings("TooManyParameters")
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onEnter(
         @Advice.Argument(value = 0, typing = Typing.DYNAMIC) Object arg,
         @Advice.Argument(1) Context context,
         @Advice.Local("otelInput") AwsLambdaRequest input,
+        @Advice.Local("otelTriggerInstrumentation") Instrumenter<AwsLambdaRequest, Object> triggerInstrumentation,
         @Advice.Local("otelTriggerContext") io.opentelemetry.context.Context triggerContext,
         @Advice.Local("otelTriggerScope") Scope triggerScope,
         @Advice.Local("otelFunctionContext") io.opentelemetry.context.Context functionContext,
@@ -72,8 +75,10 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
         return;
       }
 
-      triggerContext =
-          AwsLambdaInstrumentationHelper.triggerInstrumenter().start(parentContext, input);
+      triggerInstrumentation =  AwsLambdaInstrumentationHelper.getTriggers()
+          .getInstrumenterForRequest(input);
+
+      triggerContext = triggerInstrumentation.start(parentContext, input);
       triggerScope = triggerContext.makeCurrent();
 
       functionContext =
@@ -98,6 +103,7 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
         @Advice.Return(typing = Typing.DYNAMIC) Object response,
         @Advice.Thrown Throwable throwable,
         @Advice.Local("otelInput") AwsLambdaRequest input,
+        @Advice.Local("otelTriggerInstrumentation") Instrumenter<AwsLambdaRequest, Object> triggerInstrumentation,
         @Advice.Local("otelTriggerContext") io.opentelemetry.context.Context triggerContext,
         @Advice.Local("otelTriggerScope") Scope triggerScope,
         @Advice.Local("otelFunctionContext") io.opentelemetry.context.Context functionContext,
@@ -119,7 +125,7 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
 
       if (triggerScope != null) {
         triggerScope.close();
-        AwsLambdaInstrumentationHelper.triggerInstrumenter()
+        triggerInstrumentation
             .end(triggerContext, input, response, throwable);
       }
 

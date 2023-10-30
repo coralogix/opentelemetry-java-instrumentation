@@ -1,21 +1,26 @@
-package io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.trigger;
+package io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.triggers;
 
 import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.instrumentation.api.instrumenter.SpanKindExtractor;
+import io.opentelemetry.instrumentation.api.instrumenter.SpanStatusBuilder;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
+import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Trigger;
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * This class is internal and is hence not for public use. Its APIs are unstable and can change at
  * any time.
  */
-public final class ApiGatewayRestTrigger {
+public final class ApiGatewayRestTrigger extends Trigger {
 
-  private ApiGatewayRestTrigger(){}
-
-  public static boolean matches(AwsLambdaRequest request) {
+  @SuppressWarnings("unchecked")
+  @Override
+  public boolean matches(AwsLambdaRequest request) {
     if (request.getInput() instanceof Map) {
+
       Map<String, Object> input = (Map<String, Object>) request.getInput();
       Object requestContext = input.get("requestContext");
       Object resource = input.get("resource");
@@ -24,20 +29,31 @@ public final class ApiGatewayRestTrigger {
     return false;
   }
 
-  public static Optional<String> maybeSpanName(AwsLambdaRequest request) {
+  @SuppressWarnings("unchecked")
+  @Override
+  public String extract(AwsLambdaRequest request) {
     if (request.getInput() instanceof Map) {
-      @SuppressWarnings("unchecked")
       Map<String, Object> input = (Map<String, Object>) request.getInput();
       Object resource = input.get("resource");
       if (resource instanceof String) {
-        return Optional.of((String) resource);
+        return (String) resource;
       }
     }
-    return Optional.empty();
+    return "API Gateway";
+  }
+
+  @Override
+  public void extract(SpanStatusBuilder spanStatusBuilder, AwsLambdaRequest request,
+      @Nullable Object response, @Nullable Throwable error) {
+    //    boolean isError = statusCode.startsWith("4") || statusCode.startsWith("5");
+    // TODO
   }
 
   @SuppressWarnings("unchecked")
-  public static void addStartAttributes(AttributesBuilder attributes, AwsLambdaRequest request) {
+  @Override
+  public void onStart(AttributesBuilder attributes, Context parentContext,
+      AwsLambdaRequest request) {
+
     if (!(request.getInput() instanceof Map)) {
       return;
     }
@@ -89,10 +105,13 @@ public final class ApiGatewayRestTrigger {
 //      )
 //    );
 //    }
+
   }
 
   @SuppressWarnings("unchecked")
-  public static void addEndAttributes(AttributesBuilder attributes, AwsLambdaRequest request, Object response) {
+  @Override
+  public void onEnd(AttributesBuilder attributes, Context context,
+      AwsLambdaRequest request, @Nullable Object response, @Nullable Throwable error) {
     if (!(response instanceof Map)) {
       return;
     }
@@ -100,9 +119,10 @@ public final class ApiGatewayRestTrigger {
 
     String statusCode = (String) resp.get("statusCode");
     attributes.put("http.status_code", statusCode);
+  }
 
-    boolean error = statusCode.startsWith("4") || statusCode.startsWith("5");
-
-
+  @Override
+  public SpanKindExtractor<AwsLambdaRequest> spanKindExtractor() {
+    return SpanKindExtractor.alwaysServer();
   }
 }

@@ -8,20 +8,23 @@ package io.opentelemetry.javaagent.instrumentation.awslambdaevents.v2_2;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
-import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerInstrumenter;
-import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerInstrumenterFactory;
+import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Trigger;
+import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Triggers;
+import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.triggers.ApiGatewayRestTrigger;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.AwsLambdaEventsInstrumenterFactory;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.AwsLambdaSqsInstrumenterFactory;
 
 public final class AwsLambdaInstrumentationHelper {
 
-  private static final TriggerInstrumenter
-      TRIGGER_INSTRUMENTER =
-        TriggerInstrumenterFactory.createInstrumenter(GlobalOpenTelemetry.get());
+  private static final Triggers TRIGGERS = new Triggers(
+      new Trigger[]{
+        new ApiGatewayRestTrigger()
+      },
+      GlobalOpenTelemetry.get()
+  );
 
-  public static TriggerInstrumenter
-      triggerInstrumenter() {
-    return TRIGGER_INSTRUMENTER;
+  public static Triggers getTriggers() {
+    return TRIGGERS;
   }
 
   private static final io.opentelemetry.instrumentation.awslambdacore.v1_0.internal
