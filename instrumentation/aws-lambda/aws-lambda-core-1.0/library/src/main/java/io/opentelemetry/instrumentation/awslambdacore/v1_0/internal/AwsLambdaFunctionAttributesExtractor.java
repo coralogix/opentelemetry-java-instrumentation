@@ -48,7 +48,6 @@ public final class AwsLambdaFunctionAttributesExtractor
       AttributesBuilder attributes,
       io.opentelemetry.context.Context parentContext,
       AwsLambdaRequest request) {
-    System.out.println("AwsLambdaFunctionAttributesExtractor#onStart");
     Context awsContext = request.getAwsContext();
     attributes.put(FAAS_INVOCATION_ID, awsContext.getAwsRequestId());
     String arn = getFunctionArn(awsContext);
