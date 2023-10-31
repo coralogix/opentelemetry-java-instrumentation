@@ -17,8 +17,8 @@ import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.AwsLambdaS
 public final class AwsLambdaInstrumentationHelper {
 
   private static final Triggers TRIGGERS = new Triggers(
-      new Trigger[]{
-        new ApiGatewayRestTrigger()
+      new Trigger[] {
+          new ApiGatewayRestTrigger()
       },
       GlobalOpenTelemetry.get()
   );
@@ -28,13 +28,13 @@ public final class AwsLambdaInstrumentationHelper {
   }
 
   private static final io.opentelemetry.instrumentation.awslambdacore.v1_0.internal
-          .AwsLambdaFunctionInstrumenter
+      .AwsLambdaFunctionInstrumenter
       FUNCTION_INSTRUMENTER =
-          AwsLambdaEventsInstrumenterFactory.createInstrumenter(GlobalOpenTelemetry.get());
+      AwsLambdaEventsInstrumenterFactory.createInstrumenter(GlobalOpenTelemetry.get());
 
   public static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal
-          .AwsLambdaFunctionInstrumenter
-      functionInstrumenter() {
+      .AwsLambdaFunctionInstrumenter
+  functionInstrumenter() {
     return FUNCTION_INSTRUMENTER;
   }
 

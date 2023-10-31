@@ -17,8 +17,7 @@ public class Triggers {
   public Triggers(Trigger[] triggers, OpenTelemetry openTelemetry) {
     this.triggers = triggers;
     this.instrumenters = new Instrumenter[triggers.length];
-    for(int i = 0; i < triggers.length; i++){
-      // TODO consider making it more lazy
+    for (int i = 0; i < triggers.length; i++) {
       instrumenters[i] = Instrumenter.builder(
               openTelemetry,
               "io.opentelemetry.aws-lambda-core-1.0",
@@ -29,8 +28,11 @@ public class Triggers {
     }
   }
 
-  public Instrumenter<AwsLambdaRequest, Object> getInstrumenterForRequest(AwsLambdaRequest request) {
-    for(int i = 0; i < triggers.length; i++){
+  public Instrumenter<AwsLambdaRequest, Object> getInstrumenterForRequest(
+      AwsLambdaRequest request) {
+    System.out.println("Input Class: " + request.getInput().getClass());
+    System.out.println("Input: " + request.getInput());
+    for (int i = 0; i < triggers.length; i++) {
       if (triggers[i].matches(request)) {
         return instrumenters[i];
       }

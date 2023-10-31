@@ -75,7 +75,7 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
         return;
       }
 
-      triggerInstrumentation =  AwsLambdaInstrumentationHelper.getTriggers()
+      triggerInstrumentation = AwsLambdaInstrumentationHelper.getTriggers()
           .getInstrumenterForRequest(input);
 
       triggerContext = triggerInstrumentation.start(parentContext, input);

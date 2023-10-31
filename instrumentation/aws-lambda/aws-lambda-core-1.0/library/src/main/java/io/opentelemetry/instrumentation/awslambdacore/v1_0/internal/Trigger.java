@@ -10,7 +10,8 @@ import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
  * This class is internal and is hence not for public use. Its APIs are unstable and can change at
  * any time.
  */
-public abstract class Trigger implements SpanNameExtractor<AwsLambdaRequest>, SpanStatusExtractor<AwsLambdaRequest, Object>, AttributesExtractor<AwsLambdaRequest, Object> {
+public abstract class Trigger implements SpanNameExtractor<AwsLambdaRequest>,
+    SpanStatusExtractor<AwsLambdaRequest, Object>, AttributesExtractor<AwsLambdaRequest, Object> {
 
   public abstract boolean matches(AwsLambdaRequest request);
 
