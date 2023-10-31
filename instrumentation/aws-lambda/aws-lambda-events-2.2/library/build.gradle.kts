@@ -12,11 +12,8 @@ dependencies {
   annotationProcessor("com.google.auto.value:auto-value")
 
   library("com.amazonaws:aws-lambda-java-core:1.0.0")
-  // First version to includes support for SQSEvent, currently the most popular message queue used
-  // with lambda.
-  // NB: 2.2.0 includes a class called SQSEvent but isn't usable due to it returning private classes
-  // in public API.
-  library("com.amazonaws:aws-lambda-java-events:2.2.1")
+  // First version that supports getMultiValueHeaders in API Gateway Rest
+  library("com.amazonaws:aws-lambda-java-events:2.2.3")
 
   // We need Jackson for wrappers to reproduce the serialization does when Lambda invokes a RequestHandler with event
   // since Lambda will only be able to invoke the wrapper itself with a generic Object.
