@@ -46,7 +46,6 @@ public class TracingRequestApiGatewayWrapper
   @Override
   protected APIGatewayProxyResponseEvent doHandleRequest(
       APIGatewayProxyRequestEvent input, Context context) {
-    System.out.println("TracingRequestApiGatewayWrapper");
     Object result = super.doHandleRequest(input, context);
     APIGatewayProxyResponseEvent event;
     // map to response event if needed

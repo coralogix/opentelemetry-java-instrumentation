@@ -76,20 +76,19 @@ public final class ApiGatewayRestTrigger extends Trigger {
       APIGatewayProxyRequestEvent req = requireCorrectEventType(request);
       ProxyRequestContext requestContext = req.getRequestContext();
       RequestIdentity identity = requestContext.getIdentity();
-      Map<String, String> headers = req.getHeaders();
+      Map<String, String> headers = lowercaseMap(req.getHeaders());
 
-      attributes.put("test.null.attribute", (String) null);
       attributes.put(FAAS_TRIGGER, FaasTriggerValues.HTTP);
       attributes.put(FAAS_TRIGGER_TYPE, "Api Gateway Rest");
       attributes.put(HTTP_METHOD, requestContext.getHttpMethod());
       attributes.put(HTTP_ROUTE, requestContext.getResourcePath());
-      attributes.put(HTTP_URL, getHttpUrl(req, lowercaseMap(request.getHeaders())));
+      attributes.put(HTTP_URL, getHttpUrl(req, headers));
       attributes.put(NET_SOCK_PEER_ADDR,
           identity.getSourceIp()); // TODO change this in python and nodejs
       attributes.put(USER_AGENT_ORIGINAL,
-          headers.get("User-Agent")); // TODO change this in python and nodejs
-      attributes.put(HTTP_SCHEME, headers.get("X-Forwarded-For"));
-      attributes.put(NET_HOST_NAME, headers.get("Host")); // TODO change this in nodejs
+          headers.get("user-agent")); // TODO change this in python and nodejs
+      attributes.put(HTTP_SCHEME, headers.get("x-forwarded-proto"));
+      attributes.put(NET_HOST_NAME, headers.get("host")); // TODO change this in nodejs
 
       attributes.put(HTTP_REQUEST_BODY, limitedPayload(req.getBody()));
 

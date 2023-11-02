@@ -59,7 +59,6 @@ abstract class TracingRequestWrapperBase<I, O> extends TracingRequestHandler<I, 
   @Override
   @SuppressWarnings("unchecked")
   protected O doHandleRequest(I input, Context context) {
-    System.out.println("TracingRequestWrapperBase");
     Object[] parameters = LambdaParameters.toArray(targetMethod, input, context, parameterMapper);
     O result;
     try {
