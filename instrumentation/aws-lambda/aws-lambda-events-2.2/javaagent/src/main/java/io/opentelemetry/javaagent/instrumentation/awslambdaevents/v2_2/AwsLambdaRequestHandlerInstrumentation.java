@@ -15,6 +15,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 import io.opentelemetry.context.Scope;
+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
 import io.opentelemetry.javaagent.bootstrap.OpenTelemetrySdkAccess;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;
@@ -51,11 +52,15 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
   @SuppressWarnings("unused")
   public static class HandleRequestAdvice {
 
+    @SuppressWarnings("TooManyParameters")
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onEnter(
         @Advice.Argument(value = 0, typing = Typing.DYNAMIC) Object arg,
         @Advice.Argument(1) Context context,
         @Advice.Local("otelInput") AwsLambdaRequest input,
+        @Advice.Local("otelTriggerInstrumentation") Instrumenter<AwsLambdaRequest, Object> triggerInstrumentation,
+        @Advice.Local("otelTriggerContext") io.opentelemetry.context.Context triggerContext,
+        @Advice.Local("otelTriggerScope") Scope triggerScope,
         @Advice.Local("otelFunctionContext") io.opentelemetry.context.Context functionContext,
         @Advice.Local("otelFunctionScope") Scope functionScope,
         @Advice.Local("otelMessageContext") io.opentelemetry.context.Context messageContext,
@@ -69,8 +74,14 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
         return;
       }
 
+      triggerInstrumentation = AwsLambdaInstrumentationHelper.getTriggers()
+          .getInstrumenterForRequest(input);
+
+      triggerContext = triggerInstrumentation.start(parentContext, input);
+      triggerScope = triggerContext.makeCurrent();
+
       functionContext =
-          AwsLambdaInstrumentationHelper.functionInstrumenter().start(parentContext, input);
+          AwsLambdaInstrumentationHelper.functionInstrumenter().start(triggerContext, input);
       functionScope = functionContext.makeCurrent();
 
       if (arg instanceof SQSEvent) {
@@ -84,11 +95,16 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
       }
     }
 
+    @SuppressWarnings("TooManyParameters")
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
     public static void stopSpan(
         @Advice.Argument(value = 0, typing = Typing.DYNAMIC) Object arg,
+        @Advice.Return(typing = Typing.DYNAMIC) Object response,
         @Advice.Thrown Throwable throwable,
         @Advice.Local("otelInput") AwsLambdaRequest input,
+        @Advice.Local("otelTriggerInstrumentation") Instrumenter<AwsLambdaRequest, Object> triggerInstrumentation,
+        @Advice.Local("otelTriggerContext") io.opentelemetry.context.Context triggerContext,
+        @Advice.Local("otelTriggerScope") Scope triggerScope,
         @Advice.Local("otelFunctionContext") io.opentelemetry.context.Context functionContext,
         @Advice.Local("otelFunctionScope") Scope functionScope,
         @Advice.Local("otelMessageContext") io.opentelemetry.context.Context messageContext,
@@ -104,6 +120,12 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
         functionScope.close();
         AwsLambdaInstrumentationHelper.functionInstrumenter()
             .end(functionContext, input, null, throwable);
+      }
+
+      if (triggerScope != null) {
+        triggerScope.close();
+        triggerInstrumentation
+            .end(triggerContext, input, response, throwable);
       }
 
       OpenTelemetrySdkAccess.forceFlush(1, TimeUnit.SECONDS);

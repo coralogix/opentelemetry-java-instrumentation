@@ -10,13 +10,11 @@ import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.context.Context;
-import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.contrib.awsxray.propagator.AwsXrayPropagator;
 import io.opentelemetry.instrumentation.api.instrumenter.SpanLinksBuilder;
 import io.opentelemetry.instrumentation.api.instrumenter.SpanLinksExtractor;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
 import java.util.Collections;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -66,19 +64,5 @@ final class AwsXrayEnvSpanLinksExtractor implements SpanLinksExtractor<AwsLambda
 
   private static boolean isEmptyOrNull(String value) {
     return value == null || value.isEmpty();
-  }
-
-  private enum MapGetter implements TextMapGetter<Map<String, String>> {
-    INSTANCE;
-
-    @Override
-    public Iterable<String> keys(Map<String, String> map) {
-      return map.keySet();
-    }
-
-    @Override
-    public String get(Map<String, String> map, String s) {
-      return map.get(s.toLowerCase(Locale.ROOT));
-    }
   }
 }

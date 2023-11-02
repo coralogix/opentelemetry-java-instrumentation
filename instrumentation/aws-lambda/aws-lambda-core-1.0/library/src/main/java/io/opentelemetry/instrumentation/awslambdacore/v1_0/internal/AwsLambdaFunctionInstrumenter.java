@@ -7,12 +7,10 @@ package io.opentelemetry.instrumentation.awslambdacore.v1_0.internal;
 
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.context.Context;
-import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.context.propagation.TextMapPropagator;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.api.internal.ContextPropagationDebug;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
-import java.util.Locale;
 import java.util.Map;
 import javax.annotation.Nullable;
 
@@ -65,19 +63,5 @@ public class AwsLambdaFunctionInstrumenter {
       return propagator.extract(root, custom, MapGetter.INSTANCE);
     }
     return root;
-  }
-
-  private enum MapGetter implements TextMapGetter<Map<String, String>> {
-    INSTANCE;
-
-    @Override
-    public Iterable<String> keys(Map<String, String> map) {
-      return map.keySet();
-    }
-
-    @Override
-    public String get(Map<String, String> map, String s) {
-      return map.get(s.toLowerCase(Locale.ROOT));
-    }
   }
 }
