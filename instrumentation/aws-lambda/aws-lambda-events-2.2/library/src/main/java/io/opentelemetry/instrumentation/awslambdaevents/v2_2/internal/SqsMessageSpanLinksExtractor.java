@@ -9,13 +9,11 @@ import com.amazonaws.services.lambda.runtime.events.SQSEvent.SQSMessage;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.context.Context;
-import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.contrib.awsxray.propagator.AwsXrayPropagator;
 import io.opentelemetry.instrumentation.api.instrumenter.SpanLinksBuilder;
 import io.opentelemetry.instrumentation.api.instrumenter.SpanLinksExtractor;
+import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.MapGetter;
 import java.util.Collections;
-import java.util.Locale;
-import java.util.Map;
 
 class SqsMessageSpanLinksExtractor implements SpanLinksExtractor<SQSMessage> {
   private static final String AWS_TRACE_HEADER_SQS_ATTRIBUTE_KEY = "AWSTraceHeader";
@@ -37,20 +35,6 @@ class SqsMessageSpanLinksExtractor implements SpanLinksExtractor<SQSMessage> {
       if (messageSpanCtx.isValid()) {
         spanLinks.addLink(messageSpanCtx);
       }
-    }
-  }
-
-  private enum MapGetter implements TextMapGetter<Map<String, String>> {
-    INSTANCE;
-
-    @Override
-    public Iterable<String> keys(Map<String, String> map) {
-      return map.keySet();
-    }
-
-    @Override
-    public String get(Map<String, String> map, String s) {
-      return map.get(s.toLowerCase(Locale.ROOT));
     }
   }
 }

@@ -27,7 +27,6 @@ public final class AwsLambdaEventsInstrumenterFactory {
                 "io.opentelemetry.aws-lambda-events-2.2",
                 AwsLambdaEventsInstrumenterFactory::spanName)
             .addAttributesExtractor(new AwsLambdaFunctionAttributesExtractor())
-            .addAttributesExtractor(new ApiGatewayProxyAttributesExtractor())
             .buildInstrumenter(SpanKindExtractor.alwaysServer()));
   }
 
