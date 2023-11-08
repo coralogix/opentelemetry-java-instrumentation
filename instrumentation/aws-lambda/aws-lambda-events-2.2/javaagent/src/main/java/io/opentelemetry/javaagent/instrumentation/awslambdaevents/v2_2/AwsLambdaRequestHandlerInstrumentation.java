@@ -77,11 +77,15 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
       triggerInstrumentation = AwsLambdaInstrumentationHelper.getTriggers()
           .getInstrumenterForRequest(input);
 
-      triggerContext = triggerInstrumentation.start(parentContext, input);
-      triggerScope = triggerContext.makeCurrent();
+      if (triggerInstrumentation != null) {
+        triggerContext = triggerInstrumentation.start(parentContext, input);
+        triggerScope = triggerContext.makeCurrent();
+      }
 
+      io.opentelemetry.context.Context parentForFunctionContext =
+          triggerContext != null ? triggerContext : parentContext;
       functionContext =
-          AwsLambdaInstrumentationHelper.functionInstrumenter().start(triggerContext, input);
+          AwsLambdaInstrumentationHelper.functionInstrumenter().start(parentForFunctionContext, input);
       functionScope = functionContext.makeCurrent();
 
       if (arg instanceof SQSEvent) {
