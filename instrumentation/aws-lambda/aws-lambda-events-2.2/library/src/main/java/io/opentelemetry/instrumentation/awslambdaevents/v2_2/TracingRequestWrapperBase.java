@@ -50,7 +50,7 @@ abstract class TracingRequestWrapperBase<I, O> extends TracingRequestHandler<I, 
     super(
         openTelemetrySdk,
         WrapperConfiguration.flushTimeout()
-        );
+    );
     this.wrappedLambda = wrappedLambda;
     this.targetMethod = wrappedLambda.getRequestTargetMethod();
     this.parameterMapper = parameterMapper;

@@ -7,11 +7,11 @@ package io.opentelemetry.javaagent.bootstrap.internal;
 
 import static java.util.Collections.emptyMap;
 
+import io.opentelemetry.instrumentation.api.instrumenter.net.PeerServiceResolver;
 import io.opentelemetry.instrumentation.api.internal.HttpConstants;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -26,7 +26,7 @@ public final class CommonConfig {
     return instance;
   }
 
-  private final Map<String, String> peerServiceMapping;
+  private final PeerServiceResolver peerServiceResolver;
   private final List<String> clientRequestHeaders;
   private final List<String> clientResponseHeaders;
   private final List<String> serverRequestHeaders;
@@ -34,10 +34,12 @@ public final class CommonConfig {
   private final Set<String> knownHttpRequestMethods;
   private final boolean statementSanitizationEnabled;
   private final boolean emitExperimentalHttpClientMetrics;
+  private final boolean emitExperimentalHttpServerMetrics;
 
   CommonConfig(InstrumentationConfig config) {
-    peerServiceMapping =
-        config.getMap("otel.instrumentation.common.peer-service-mapping", emptyMap());
+    peerServiceResolver =
+        PeerServiceResolver.create(
+            config.getMap("otel.instrumentation.common.peer-service-mapping", emptyMap()));
 
     // TODO (mateusz): remove the old config names in 2.0
     clientRequestHeaders =
@@ -69,10 +71,12 @@ public final class CommonConfig {
         config.getBoolean("otel.instrumentation.common.db-statement-sanitizer.enabled", true);
     emitExperimentalHttpClientMetrics =
         config.getBoolean("otel.instrumentation.http.client.emit-experimental-metrics", false);
+    emitExperimentalHttpServerMetrics =
+        config.getBoolean("otel.instrumentation.http.server.emit-experimental-metrics", false);
   }
 
-  public Map<String, String> getPeerServiceMapping() {
-    return peerServiceMapping;
+  public PeerServiceResolver getPeerServiceResolver() {
+    return peerServiceResolver;
   }
 
   public List<String> getClientRequestHeaders() {
@@ -101,5 +105,9 @@ public final class CommonConfig {
 
   public boolean shouldEmitExperimentalHttpClientMetrics() {
     return emitExperimentalHttpClientMetrics;
+  }
+
+  public boolean shouldEmitExperimentalHttpServerMetrics() {
+    return emitExperimentalHttpServerMetrics;
   }
 }

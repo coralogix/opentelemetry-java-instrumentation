@@ -9,7 +9,7 @@ import static java.util.Collections.singletonList;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
-import io.opentelemetry.instrumentation.api.instrumenter.net.PeerServiceAttributesExtractor;
+import io.opentelemetry.instrumentation.api.instrumenter.http.HttpClientPeerServiceAttributesExtractor;
 import io.opentelemetry.instrumentation.jetty.httpclient.v9_2.internal.JettyClientHttpAttributesGetter;
 import io.opentelemetry.instrumentation.jetty.httpclient.v9_2.internal.JettyClientInstrumenterFactory;
 import io.opentelemetry.javaagent.bootstrap.internal.CommonConfig;
@@ -26,10 +26,11 @@ public class JettyHttpClientSingletons {
                   .setCapturedRequestHeaders(CommonConfig.get().getClientRequestHeaders())
                   .setCapturedResponseHeaders(CommonConfig.get().getClientResponseHeaders())
                   .setKnownMethods(CommonConfig.get().getKnownHttpRequestMethods()),
+          builder -> builder.setKnownMethods(CommonConfig.get().getKnownHttpRequestMethods()),
           singletonList(
-              PeerServiceAttributesExtractor.create(
+              HttpClientPeerServiceAttributesExtractor.create(
                   JettyClientHttpAttributesGetter.INSTANCE,
-                  CommonConfig.get().getPeerServiceMapping())),
+                  CommonConfig.get().getPeerServiceResolver())),
           CommonConfig.get().shouldEmitExperimentalHttpClientMetrics());
 
   public static Instrumenter<Request, Response> instrumenter() {

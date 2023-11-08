@@ -12,6 +12,7 @@ import io.opentelemetry.instrumentation.api.instrumenter.SpanKindExtractor;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.AwsLambdaFunctionAttributesExtractor;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.AwsLambdaFunctionInstrumenter;
+import java.util.Set;
 
 /**
  * This class is internal and is hence not for public use. Its APIs are unstable and can change at
@@ -19,7 +20,8 @@ import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.AwsLambdaFun
  */
 public final class AwsLambdaEventsInstrumenterFactory {
 
-  public static AwsLambdaFunctionInstrumenter createInstrumenter(OpenTelemetry openTelemetry) {
+  public static AwsLambdaFunctionInstrumenter createInstrumenter(
+      OpenTelemetry openTelemetry, Set<String> knownMethods) {
     return new AwsLambdaFunctionInstrumenter(
         openTelemetry,
         Instrumenter.builder(

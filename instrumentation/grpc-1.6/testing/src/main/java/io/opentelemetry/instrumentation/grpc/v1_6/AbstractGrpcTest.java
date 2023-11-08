@@ -48,7 +48,7 @@ import io.opentelemetry.instrumentation.testing.util.ThrowingRunnable;
 import io.opentelemetry.sdk.testing.assertj.AttributeAssertion;
 import io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions;
 import io.opentelemetry.sdk.trace.data.StatusData;
-import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
+import io.opentelemetry.semconv.SemanticAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -73,6 +73,7 @@ import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@SuppressWarnings("deprecation") // until old http semconv are dropped in 2.0
 public abstract class AbstractGrpcTest {
   protected static final String CLIENT_REQUEST_METADATA_KEY = "some-client-key";
 
@@ -603,6 +604,7 @@ public abstract class AbstractGrpcTest {
               assertThat(t.getStatus().getDescription()).isEqualTo(status.getDescription());
             });
 
+    boolean isServerError = status.getCode() != Status.Code.NOT_FOUND;
     testing()
         .waitAndAssertTraces(
             trace ->
@@ -634,7 +636,7 @@ public abstract class AbstractGrpcTest {
                         span.hasName("example.Greeter/SayHello")
                             .hasKind(SpanKind.SERVER)
                             .hasParent(trace.getSpan(0))
-                            .hasStatus(StatusData.error())
+                            .hasStatus(isServerError ? StatusData.error() : StatusData.unset())
                             .hasAttributesSatisfyingExactly(
                                 equalTo(SemanticAttributes.RPC_SYSTEM, "grpc"),
                                 equalTo(SemanticAttributes.RPC_SERVICE, "example.Greeter"),
@@ -862,11 +864,19 @@ public abstract class AbstractGrpcTest {
     public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
       return Stream.of(
           arguments(Status.UNKNOWN.withCause(new RuntimeException("some error"))),
-          arguments(Status.PERMISSION_DENIED.withCause(new RuntimeException("some error"))),
+          arguments(Status.DEADLINE_EXCEEDED.withCause(new RuntimeException("some error"))),
           arguments(Status.UNIMPLEMENTED.withCause(new RuntimeException("some error"))),
+          arguments(Status.INTERNAL.withCause(new RuntimeException("some error"))),
+          arguments(Status.UNAVAILABLE.withCause(new RuntimeException("some error"))),
+          arguments(Status.DATA_LOSS.withCause(new RuntimeException("some error"))),
+          arguments(Status.NOT_FOUND.withCause(new RuntimeException("some error"))),
           arguments(Status.UNKNOWN.withDescription("some description")),
-          arguments(Status.PERMISSION_DENIED.withDescription("some description")),
-          arguments(Status.UNIMPLEMENTED.withDescription("some description")));
+          arguments(Status.DEADLINE_EXCEEDED.withDescription("some description")),
+          arguments(Status.UNIMPLEMENTED.withDescription("some description")),
+          arguments(Status.INTERNAL.withDescription("some description")),
+          arguments(Status.UNAVAILABLE.withDescription("some description")),
+          arguments(Status.DATA_LOSS.withDescription("some description")),
+          arguments(Status.NOT_FOUND.withDescription("some description")));
     }
   }
 

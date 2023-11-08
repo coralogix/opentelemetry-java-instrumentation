@@ -5,10 +5,11 @@
 
 package io.opentelemetry.instrumentation.testing.junit.http;
 
+import static io.opentelemetry.api.common.AttributeKey.stringKey;
 import static io.opentelemetry.instrumentation.testing.util.TelemetryDataUtil.comparingRootSpanAttribute;
 import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.assertThat;
 import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.NetTransportValues.IP_TCP;
+import static io.opentelemetry.semconv.SemanticAttributes.NetTransportValues.IP_TCP;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.junit.Assume.assumeFalse;
@@ -18,8 +19,7 @@ import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.instrumentation.api.instrumenter.http.internal.HttpAttributes;
-import io.opentelemetry.instrumentation.api.instrumenter.network.internal.NetworkAttributes;
-import io.opentelemetry.instrumentation.api.instrumenter.url.internal.UrlAttributes;
+import io.opentelemetry.instrumentation.api.internal.HttpConstants;
 import io.opentelemetry.instrumentation.api.internal.SemconvStability;
 import io.opentelemetry.instrumentation.test.utils.PortUtils;
 import io.opentelemetry.instrumentation.testing.InstrumentationTestRunner;
@@ -27,11 +27,10 @@ import io.opentelemetry.sdk.testing.assertj.SpanDataAssert;
 import io.opentelemetry.sdk.testing.assertj.TraceAssert;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.data.StatusData;
-import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
+import io.opentelemetry.semconv.SemanticAttributes;
 import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,6 +42,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -115,11 +115,29 @@ public abstract class AbstractHttpClientTest<REQUEST> implements HttpClientTypeA
     assertThat(responseCode).isEqualTo(200);
 
     testing.waitAndAssertTraces(
-        trace -> {
-          trace.hasSpansSatisfyingExactly(
-              span -> assertClientSpan(span, uri, method, responseCode, null).hasNoParent(),
-              span -> assertServerSpan(span).hasParent(trace.getSpan(0)));
-        });
+        trace ->
+            trace.hasSpansSatisfyingExactly(
+                span -> assertClientSpan(span, uri, method, responseCode, null).hasNoParent(),
+                span -> assertServerSpan(span).hasParent(trace.getSpan(0))));
+  }
+
+  @Test
+  void requestWithNonStandardHttpMethod() throws Exception {
+    assumeTrue(SemconvStability.emitStableHttpSemconv() && options.getTestNonStandardHttpMethod());
+
+    URI uri = resolveAddress("/success");
+    String method = "TEST";
+    int responseCode = doRequest(method, uri);
+
+    assertThat(responseCode).isEqualTo(405);
+
+    testing.waitAndAssertTraces(
+        trace ->
+            trace.hasSpansSatisfyingExactly(
+                span ->
+                    assertClientSpan(span, uri, HttpConstants._OTHER, responseCode, null)
+                        .hasNoParent()
+                        .hasAttribute(SemanticAttributes.HTTP_REQUEST_METHOD_ORIGINAL, method)));
   }
 
   @ParameterizedTest
@@ -592,25 +610,14 @@ public abstract class AbstractHttpClientTest<REQUEST> implements HttpClientTypeA
 
     testing.waitAndAssertTraces(
         trace -> {
-          List<Consumer<SpanDataAssert>> spanAsserts =
-              Arrays.asList(
-                  span -> span.hasName("parent").hasKind(SpanKind.INTERNAL).hasNoParent(),
-                  span ->
-                      assertClientSpan(span, uri, method, null, null)
-                          .hasParent(trace.getSpan(0))
-                          .hasException(clientError),
-                  span ->
-                      span.hasName("callback")
-                          .hasKind(SpanKind.INTERNAL)
-                          .hasParent(trace.getSpan(0)));
-          boolean jdk8 = Objects.equals(System.getProperty("java.specification.version"), "1.8");
-          if (jdk8) {
-            // on some netty based http clients order of `CONNECT` and `callback` spans isn't
-            // guaranteed when running on jdk8
-            trace.hasSpansSatisfyingExactlyInAnyOrder(spanAsserts);
-          } else {
-            trace.hasSpansSatisfyingExactly(spanAsserts);
-          }
+          trace.hasSpansSatisfyingExactlyInAnyOrder(
+              span -> span.hasName("parent").hasKind(SpanKind.INTERNAL).hasNoParent(),
+              span ->
+                  assertClientSpan(span, uri, method, null, null)
+                      .hasParent(trace.getSpan(0))
+                      .hasException(clientError),
+              span ->
+                  span.hasName("callback").hasKind(SpanKind.INTERNAL).hasParent(trace.getSpan(0)));
         });
   }
 
@@ -703,6 +710,47 @@ public abstract class AbstractHttpClientTest<REQUEST> implements HttpClientTypeA
               span -> assertClientSpan(span, uri, method, responseCode, null).hasNoParent(),
               span -> assertServerSpan(span).hasParent(trace.getSpan(0)));
         });
+  }
+
+  @Test
+  void httpClientMetrics() throws Exception {
+    URI uri = resolveAddress("/success");
+    String method = "GET";
+    int responseCode = doRequest(method, uri);
+
+    assertThat(responseCode).isEqualTo(200);
+
+    AtomicReference<String> instrumentationName = new AtomicReference<>();
+    testing.waitAndAssertTraces(
+        trace -> {
+          instrumentationName.set(trace.getSpan(0).getInstrumentationScopeInfo().getName());
+          trace.hasSpansSatisfyingExactly(
+              span -> assertClientSpan(span, uri, method, responseCode, null).hasNoParent(),
+              span -> assertServerSpan(span).hasParent(trace.getSpan(0)));
+        });
+
+    String durationInstrumentName =
+        SemconvStability.emitStableHttpSemconv()
+            ? "http.client.request.duration"
+            : "http.client.duration";
+    String durationInstrumentDescription =
+        SemconvStability.emitStableHttpSemconv()
+            ? "Duration of HTTP client requests."
+            : "The duration of the outbound HTTP request";
+
+    testing.waitAndAssertMetrics(
+        instrumentationName.get(),
+        durationInstrumentName,
+        metrics ->
+            metrics.anySatisfy(
+                metric ->
+                    assertThat(metric)
+                        .hasDescription(durationInstrumentDescription)
+                        .hasUnit(SemconvStability.emitStableHttpSemconv() ? "s" : "ms")
+                        .hasHistogramSatisfying(
+                            histogram ->
+                                histogram.hasPointsSatisfying(
+                                    point -> point.hasSumGreaterThan(0.0)))));
   }
 
   /**
@@ -936,6 +984,7 @@ public abstract class AbstractHttpClientTest<REQUEST> implements HttpClientTypeA
   }
 
   // Visible for spock bridge.
+  @SuppressWarnings("deprecation") // until old http semconv are dropped in 2.0
   SpanDataAssert assertClientSpan(
       SpanDataAssert span,
       URI uri,
@@ -954,12 +1003,12 @@ public abstract class AbstractHttpClientTest<REQUEST> implements HttpClientTypeA
                 assertThat(attrs).containsEntry(SemanticAttributes.NET_TRANSPORT, IP_TCP);
               }
               if (SemconvStability.emitStableHttpSemconv()
-                  && attrs.get(NetworkAttributes.NETWORK_TRANSPORT) != null) {
-                assertThat(attrs).containsEntry(NetworkAttributes.NETWORK_TRANSPORT, "tcp");
+                  && attrs.get(SemanticAttributes.NETWORK_TRANSPORT) != null) {
+                assertThat(attrs).containsEntry(SemanticAttributes.NETWORK_TRANSPORT, "tcp");
               }
               if (SemconvStability.emitStableHttpSemconv()
-                  && attrs.get(NetworkAttributes.NETWORK_TYPE) != null) {
-                assertThat(attrs).containsEntry(NetworkAttributes.NETWORK_TYPE, "ipv4");
+                  && attrs.get(SemanticAttributes.NETWORK_TYPE) != null) {
+                assertThat(attrs).containsEntry(SemanticAttributes.NETWORK_TYPE, "ipv4");
               }
               AttributeKey<String> netProtocolKey =
                   getAttributeKey(SemanticAttributes.NET_PROTOCOL_NAME);
@@ -1060,8 +1109,16 @@ public abstract class AbstractHttpClientTest<REQUEST> implements HttpClientTypeA
                   getAttributeKey(SemanticAttributes.HTTP_STATUS_CODE);
               if (responseCode != null) {
                 assertThat(attrs).containsEntry(httpResponseStatusKey, (long) responseCode);
+                if (responseCode >= 400 && SemconvStability.emitStableHttpSemconv()) {
+                  assertThat(attrs)
+                      .containsEntry(HttpAttributes.ERROR_TYPE, String.valueOf(responseCode));
+                }
               } else {
                 assertThat(attrs).doesNotContainKey(httpResponseStatusKey);
+                if (SemconvStability.emitStableHttpSemconv()) {
+                  // TODO: add more detailed assertions, per url
+                  assertThat(attrs).containsKey(stringKey("error.type"));
+                }
               }
 
               if (resendCount != null) {
@@ -1073,34 +1130,8 @@ public abstract class AbstractHttpClientTest<REQUEST> implements HttpClientTypeA
             });
   }
 
-  @SuppressWarnings("unchecked")
   protected static <T> AttributeKey<T> getAttributeKey(AttributeKey<T> oldKey) {
-    if (SemconvStability.emitStableHttpSemconv()) {
-      if (SemanticAttributes.NET_PROTOCOL_NAME == oldKey) {
-        return (AttributeKey<T>) NetworkAttributes.NETWORK_PROTOCOL_NAME;
-      } else if (SemanticAttributes.NET_PROTOCOL_VERSION == oldKey) {
-        return (AttributeKey<T>) NetworkAttributes.NETWORK_PROTOCOL_VERSION;
-      } else if (SemanticAttributes.NET_PEER_NAME == oldKey) {
-        return (AttributeKey<T>) NetworkAttributes.SERVER_ADDRESS;
-      } else if (SemanticAttributes.NET_PEER_PORT == oldKey) {
-        return (AttributeKey<T>) NetworkAttributes.SERVER_PORT;
-      } else if (SemanticAttributes.NET_SOCK_PEER_ADDR == oldKey) {
-        return (AttributeKey<T>) NetworkAttributes.CLIENT_SOCKET_ADDRESS;
-      } else if (SemanticAttributes.NET_SOCK_PEER_PORT == oldKey) {
-        return (AttributeKey<T>) NetworkAttributes.CLIENT_SOCKET_PORT;
-      } else if (SemanticAttributes.HTTP_URL == oldKey) {
-        return (AttributeKey<T>) UrlAttributes.URL_FULL;
-      } else if (SemanticAttributes.HTTP_METHOD == oldKey) {
-        return (AttributeKey<T>) HttpAttributes.HTTP_REQUEST_METHOD;
-      } else if (SemanticAttributes.HTTP_REQUEST_CONTENT_LENGTH == oldKey) {
-        return (AttributeKey<T>) HttpAttributes.HTTP_REQUEST_BODY_SIZE;
-      } else if (SemanticAttributes.HTTP_RESPONSE_CONTENT_LENGTH == oldKey) {
-        return (AttributeKey<T>) HttpAttributes.HTTP_RESPONSE_BODY_SIZE;
-      } else if (SemanticAttributes.HTTP_STATUS_CODE == oldKey) {
-        return (AttributeKey<T>) HttpAttributes.HTTP_RESPONSE_STATUS_CODE;
-      }
-    }
-    return oldKey;
+    return SemconvStabilityUtil.getAttributeKey(oldKey);
   }
 
   private static Set<AttributeKey<?>> getAttributeKeys(Set<AttributeKey<?>> oldKeys) {

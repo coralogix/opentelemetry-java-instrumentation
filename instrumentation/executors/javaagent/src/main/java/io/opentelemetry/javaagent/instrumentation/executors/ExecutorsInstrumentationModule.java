@@ -20,12 +20,18 @@ public class ExecutorsInstrumentationModule extends InstrumentationModule {
   }
 
   @Override
+  public boolean isIndyModule() {
+    return false;
+  }
+
+  @Override
   public List<TypeInstrumentation> typeInstrumentations() {
     return asList(
         new CallableInstrumentation(),
         new FutureInstrumentation(),
         new JavaExecutorInstrumentation(),
         new JavaForkJoinTaskInstrumentation(),
-        new RunnableInstrumentation());
+        new RunnableInstrumentation(),
+        new ThreadPoolExtendingExecutorInstrumentation());
   }
 }

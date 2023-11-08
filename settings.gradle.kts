@@ -1,26 +1,26 @@
 pluginManagement {
   plugins {
     id("com.github.jk1.dependency-license-report") version "2.5"
-    id("com.google.cloud.tools.jib") version "3.3.2"
-    id("com.gradle.plugin-publish") version "1.2.0"
+    id("com.google.cloud.tools.jib") version "3.4.0"
+    id("com.gradle.plugin-publish") version "1.2.1"
     id("io.github.gradle-nexus.publish-plugin") version "1.3.0"
-    id("org.jetbrains.kotlin.jvm") version "1.9.0"
+    id("org.jetbrains.kotlin.jvm") version "1.9.10"
     id("org.xbib.gradle.plugin.jflex") version "3.0.0"
     id("org.unbroken-dome.xjc") version "2.0.0"
-    id("org.graalvm.buildtools.native") version "0.9.24"
+    id("org.graalvm.buildtools.native") version "0.9.27"
   }
 }
 
 plugins {
-  id("com.gradle.enterprise") version "3.14.1"
-  id("com.gradle.common-custom-user-data-gradle-plugin") version "1.11.1"
-  id("org.gradle.toolchains.foojay-resolver-convention") version "0.6.0"
+  id("com.gradle.enterprise") version "3.15.1"
+  id("com.gradle.common-custom-user-data-gradle-plugin") version "1.11.3"
+  id("org.gradle.toolchains.foojay-resolver-convention") version "0.7.0"
   // this can't live in pluginManagement currently due to
   // https://github.com/bmuschko/gradle-docker-plugin/issues/1123
   // in particular, these commands are failing (reproducible locally):
   // ./gradlew :smoke-tests:images:servlet:buildLinuxTestImages pushMatrix -PsmokeTestServer=jetty
   // ./gradlew :smoke-tests:images:servlet:buildWindowsTestImages pushMatrix -PsmokeTestServer=jetty
-  id("com.bmuschko.docker-remote-api") version "9.3.2" apply false
+  id("com.bmuschko.docker-remote-api") version "9.3.4" apply false
 }
 
 dependencyResolutionManagement {
@@ -138,7 +138,7 @@ include(":smoke-tests:images:spring-boot")
 
 include(":smoke-tests-otel-starter")
 
-include("instrumentation:akka:akka-actor-2.3:javaagent")
+include(":instrumentation:akka:akka-actor-2.3:javaagent")
 include(":instrumentation:akka:akka-actor-fork-join-2.5:javaagent")
 include(":instrumentation:akka:akka-http-10.0:javaagent")
 include(":instrumentation:apache-dbcp-2.0:javaagent")
@@ -253,6 +253,7 @@ include(":instrumentation:hibernate:hibernate-6.0:javaagent")
 include(":instrumentation:hibernate:hibernate-6.0:spring-testing")
 include(":instrumentation:hibernate:hibernate-common:javaagent")
 include(":instrumentation:hibernate:hibernate-procedure-call-4.3:javaagent")
+include(":instrumentation:hibernate:hibernate-reactive-1.0:javaagent")
 include(":instrumentation:hikaricp-3.0:javaagent")
 include(":instrumentation:hikaricp-3.0:library")
 include(":instrumentation:hikaricp-3.0:testing")
@@ -408,6 +409,8 @@ include(":instrumentation:oshi:javaagent")
 include(":instrumentation:oshi:library")
 include(":instrumentation:oshi:testing")
 include(":instrumentation:payara:javaagent")
+include(":instrumentation:pekko-actor-1.0:javaagent")
+include(":instrumentation:pekko-http-1.0:javaagent")
 include(":instrumentation:play:play-mvc:play-mvc-2.4:javaagent")
 include(":instrumentation:play:play-mvc:play-mvc-2.6:javaagent")
 include(":instrumentation:play:play-ws:play-ws-1.0:javaagent")
@@ -457,6 +460,7 @@ include(":instrumentation:rocketmq:rocketmq-client:rocketmq-client-5.0:javaagent
 include(":instrumentation:rocketmq:rocketmq-client:rocketmq-client-5.0:testing")
 include(":instrumentation:runtime-telemetry:runtime-telemetry-java8:javaagent")
 include(":instrumentation:runtime-telemetry:runtime-telemetry-java8:library")
+include(":instrumentation:runtime-telemetry:runtime-telemetry-java8:testing")
 include(":instrumentation:runtime-telemetry:runtime-telemetry-java17:javaagent")
 include(":instrumentation:runtime-telemetry:runtime-telemetry-java17:library")
 include(":instrumentation:rxjava:rxjava-1.0:library")

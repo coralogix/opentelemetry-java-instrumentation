@@ -9,7 +9,7 @@ import static java.util.Collections.singletonList;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
-import io.opentelemetry.instrumentation.api.instrumenter.net.PeerServiceAttributesExtractor;
+import io.opentelemetry.instrumentation.api.instrumenter.http.HttpClientPeerServiceAttributesExtractor;
 import io.opentelemetry.instrumentation.httpclient.internal.HttpHeadersSetter;
 import io.opentelemetry.instrumentation.httpclient.internal.JavaHttpClientAttributesGetter;
 import io.opentelemetry.instrumentation.httpclient.internal.JavaHttpClientInstrumenterFactory;
@@ -33,10 +33,11 @@ public class JavaHttpClientSingletons {
                     .setCapturedRequestHeaders(CommonConfig.get().getClientRequestHeaders())
                     .setCapturedResponseHeaders(CommonConfig.get().getClientResponseHeaders())
                     .setKnownMethods(CommonConfig.get().getKnownHttpRequestMethods()),
+            builder -> builder.setKnownMethods(CommonConfig.get().getKnownHttpRequestMethods()),
             singletonList(
-                PeerServiceAttributesExtractor.create(
+                HttpClientPeerServiceAttributesExtractor.create(
                     JavaHttpClientAttributesGetter.INSTANCE,
-                    CommonConfig.get().getPeerServiceMapping())),
+                    CommonConfig.get().getPeerServiceResolver())),
             CommonConfig.get().shouldEmitExperimentalHttpClientMetrics());
   }
 

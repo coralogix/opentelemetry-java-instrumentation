@@ -11,32 +11,32 @@ import io.opentelemetry.instrumentation.api.instrumenter.SpanStatusBuilder;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Trigger;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerMismatchException;
+import io.opentelemetry.semconv.SemanticAttributes.FaasTriggerValues;
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
-import io.opentelemetry.semconv.trace.attributes.SemanticAttributes.FaasTriggerValues;
 
-import static io.opentelemetry.instrumentation.api.instrumenter.http.internal.HttpAttributes.HTTP_REQUEST_BODY_SIZE;
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.MapUtils.lowercaseMap;
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.FAAS_TRIGGER_TYPE;
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.HTTP_REQUEST_BODY;
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.HTTP_RESPONSE_BODY;
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.limitedPayload;
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.logException;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.FAAS_TRIGGER;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_METHOD;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_ROUTE;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_SCHEME;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_STATUS_CODE;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_URL;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.NET_HOST_NAME;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.NET_SOCK_PEER_ADDR;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.USER_AGENT_ORIGINAL;
+import static io.opentelemetry.semconv.SemanticAttributes.FAAS_TRIGGER;
+import static io.opentelemetry.semconv.SemanticAttributes.HTTP_METHOD;
+import static io.opentelemetry.semconv.SemanticAttributes.HTTP_ROUTE;
+import static io.opentelemetry.semconv.SemanticAttributes.HTTP_SCHEME;
+import static io.opentelemetry.semconv.SemanticAttributes.HTTP_STATUS_CODE;
+import static io.opentelemetry.semconv.SemanticAttributes.HTTP_URL;
+import static io.opentelemetry.semconv.SemanticAttributes.NET_HOST_NAME;
+import static io.opentelemetry.semconv.SemanticAttributes.NET_SOCK_PEER_ADDR;
+import static io.opentelemetry.semconv.SemanticAttributes.USER_AGENT_ORIGINAL;
 
 /**
  * This class is internal and is hence not for public use. Its APIs are unstable and can change at
  * any time.
  */
+@SuppressWarnings("deprecation")
 public final class ApiGatewayHttpTrigger extends Trigger {
 
   @Override

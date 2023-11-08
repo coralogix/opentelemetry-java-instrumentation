@@ -7,11 +7,12 @@ package io.opentelemetry.instrumentation.api.instrumenter.http;
 
 import static io.opentelemetry.instrumentation.api.instrumenter.http.HttpMessageBodySizeUtil.getHttpRequestBodySize;
 import static io.opentelemetry.instrumentation.api.instrumenter.http.HttpMessageBodySizeUtil.getHttpResponseBodySize;
-import static io.opentelemetry.instrumentation.api.instrumenter.http.TemporaryMetricsView.applyClientDurationAndSizeView;
+import static io.opentelemetry.instrumentation.api.instrumenter.http.HttpMetricsUtil.mergeClientAttributes;
 import static java.util.logging.Level.FINE;
 
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.LongHistogram;
+import io.opentelemetry.api.metrics.LongHistogramBuilder;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.ContextKey;
@@ -24,7 +25,7 @@ import java.util.logging.Logger;
  * href="https://github.com/open-telemetry/semantic-conventions/blob/main/specification/metrics/semantic_conventions/http-metrics.md#http-client">non-stable
  * HTTP client metrics</a>: <a
  * href="https://github.com/open-telemetry/semantic-conventions/blob/main/specification/metrics/semantic_conventions/http-metrics.md#metric-httpclientrequestsize">the
- * request size </a> and the <a
+ * request size </a> and <a
  * href="https://github.com/open-telemetry/semantic-conventions/blob/main/specification/metrics/semantic_conventions/http-metrics.md#metric-httpclientresponsesize">
  * the response size</a>.
  */
@@ -49,20 +50,22 @@ public final class HttpClientExperimentalMetrics implements OperationListener {
   private final LongHistogram responseSize;
 
   private HttpClientExperimentalMetrics(Meter meter) {
-    requestSize =
+    LongHistogramBuilder requestSizeBuilder =
         meter
             .histogramBuilder("http.client.request.size")
             .setUnit("By")
-            .setDescription("The size of HTTP request messages")
-            .ofLongs()
-            .build();
-    responseSize =
+            .setDescription("Size of HTTP client request bodies.")
+            .ofLongs();
+    HttpMetricsAdvice.applyClientRequestSizeAdvice(requestSizeBuilder);
+    requestSize = requestSizeBuilder.build();
+    LongHistogramBuilder responseSizeBuilder =
         meter
             .histogramBuilder("http.client.response.size")
             .setUnit("By")
-            .setDescription("The size of HTTP response messages")
-            .ofLongs()
-            .build();
+            .setDescription("Size of HTTP client response bodies.")
+            .ofLongs();
+    HttpMetricsAdvice.applyClientRequestSizeAdvice(responseSizeBuilder);
+    responseSize = responseSizeBuilder.build();
   }
 
   @Override
@@ -81,7 +84,7 @@ public final class HttpClientExperimentalMetrics implements OperationListener {
       return;
     }
 
-    Attributes sizeAttributes = applyClientDurationAndSizeView(startAttributes, endAttributes);
+    Attributes sizeAttributes = mergeClientAttributes(startAttributes, endAttributes);
 
     Long requestBodySize = getHttpRequestBodySize(endAttributes, startAttributes);
     if (requestBodySize != null) {
