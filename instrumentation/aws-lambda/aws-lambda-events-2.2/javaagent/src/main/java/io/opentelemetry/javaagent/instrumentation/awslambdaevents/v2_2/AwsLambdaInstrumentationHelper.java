@@ -10,6 +10,7 @@ import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Trigger;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Triggers;
+import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.ApiGatewayHttpTrigger;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.ApiGatewayRestTrigger;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.AwsLambdaEventsInstrumenterFactory;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.AwsLambdaSqsInstrumenterFactory;
@@ -19,6 +20,7 @@ public final class AwsLambdaInstrumentationHelper {
   private static final Triggers TRIGGERS = new Triggers(
       new Trigger[] {
           new ApiGatewayRestTrigger(),
+          new ApiGatewayHttpTrigger(),
       },
       GlobalOpenTelemetry.get()
   );
