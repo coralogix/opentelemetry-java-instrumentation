@@ -53,12 +53,19 @@ public final class ApiGatewayHttpTrigger extends Trigger {
   @Override
   public void extract(SpanStatusBuilder spanStatusBuilder, AwsLambdaRequest request,
       @Nullable Object response, @Nullable Throwable error) {
-    APIGatewayV2HTTPResponse res = requireCorrectResponseType(response);
-    int statusCodeInt = res.getStatusCode();
-    if (statusCodeInt >= 400 && statusCodeInt < 600) {
+    if (error != null) {
       spanStatusBuilder.setStatus(StatusCode.ERROR);
-    } else {
-      spanStatusBuilder.setStatus(StatusCode.UNSET);
+      return;
+    }
+
+    if (response != null) {
+      APIGatewayV2HTTPResponse res = requireCorrectResponseType(response);
+      int statusCodeInt = res.getStatusCode();
+      if (statusCodeInt >= 400 && statusCodeInt < 600) {
+        spanStatusBuilder.setStatus(StatusCode.ERROR);
+      } else {
+        spanStatusBuilder.setStatus(StatusCode.UNSET);
+      }
     }
   }
 

@@ -17,6 +17,8 @@ public class TriggerUtils {
   private static final Logger logger = Logger.getLogger(TriggerUtils.class.getName());
 
   // Coralogix custom attributes
+  public static final AttributeKey<String> RPC_REQUEST_PAYLOAD = AttributeKey.stringKey("rpc.request.payload");
+  public static final AttributeKey<String> RPC_RESPONSE_PAYLOAD = AttributeKey.stringKey("rpc.response.payload");
   public static final AttributeKey<String> HTTP_REQUEST_BODY = AttributeKey.stringKey(
       "http.request.body");
   public static final AttributeKey<String> HTTP_RESPONSE_BODY = AttributeKey.stringKey(
