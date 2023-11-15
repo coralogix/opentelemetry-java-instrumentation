@@ -5,7 +5,6 @@
 
 package io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal;
 
-import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.api.instrumenter.SpanKindExtractor;
@@ -33,14 +32,6 @@ public final class AwsLambdaEventsInstrumenterFactory {
   }
 
   private static String spanName(AwsLambdaRequest input) {
-    if (input.getInput() instanceof APIGatewayProxyRequestEvent) {
-      APIGatewayProxyRequestEvent request = (APIGatewayProxyRequestEvent) input.getInput();
-      String method = request.getHttpMethod();
-      String route = request.getResource();
-      if (method != null && route != null) {
-        return method + " " + route;
-      }
-    }
     return input.getAwsContext().getFunctionName();
   }
 

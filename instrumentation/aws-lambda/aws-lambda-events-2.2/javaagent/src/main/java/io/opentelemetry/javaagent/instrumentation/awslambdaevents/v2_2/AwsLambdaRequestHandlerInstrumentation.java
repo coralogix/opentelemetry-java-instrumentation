@@ -13,7 +13,6 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
@@ -62,9 +61,7 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
         @Advice.Local("otelTriggerContext") io.opentelemetry.context.Context triggerContext,
         @Advice.Local("otelTriggerScope") Scope triggerScope,
         @Advice.Local("otelFunctionContext") io.opentelemetry.context.Context functionContext,
-        @Advice.Local("otelFunctionScope") Scope functionScope,
-        @Advice.Local("otelMessageContext") io.opentelemetry.context.Context messageContext,
-        @Advice.Local("otelMessageScope") Scope messageScope) {
+        @Advice.Local("otelFunctionScope") Scope functionScope) {
       input = AwsLambdaRequest.create(context, arg, Collections.emptyMap());
       io.opentelemetry.context.Context parentContext =
           AwsLambdaInstrumentationHelper.functionInstrumenter().extract(input);
@@ -87,16 +84,6 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
       functionContext =
           AwsLambdaInstrumentationHelper.functionInstrumenter().start(parentForFunctionContext, input);
       functionScope = functionContext.makeCurrent();
-
-      if (arg instanceof SQSEvent) {
-        if (AwsLambdaInstrumentationHelper.messageInstrumenter()
-            .shouldStart(functionContext, (SQSEvent) arg)) {
-          messageContext =
-              AwsLambdaInstrumentationHelper.messageInstrumenter()
-                  .start(functionContext, (SQSEvent) arg);
-          messageScope = messageContext.makeCurrent();
-        }
-      }
     }
 
     @SuppressWarnings("TooManyParameters")
@@ -110,15 +97,7 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
         @Advice.Local("otelTriggerContext") io.opentelemetry.context.Context triggerContext,
         @Advice.Local("otelTriggerScope") Scope triggerScope,
         @Advice.Local("otelFunctionContext") io.opentelemetry.context.Context functionContext,
-        @Advice.Local("otelFunctionScope") Scope functionScope,
-        @Advice.Local("otelMessageContext") io.opentelemetry.context.Context messageContext,
-        @Advice.Local("otelMessageScope") Scope messageScope) {
-
-      if (messageScope != null) {
-        messageScope.close();
-        AwsLambdaInstrumentationHelper.messageInstrumenter()
-            .end(messageContext, (SQSEvent) arg, null, throwable);
-      }
+        @Advice.Local("otelFunctionScope") Scope functionScope) {
 
       if (functionScope != null) {
         functionScope.close();

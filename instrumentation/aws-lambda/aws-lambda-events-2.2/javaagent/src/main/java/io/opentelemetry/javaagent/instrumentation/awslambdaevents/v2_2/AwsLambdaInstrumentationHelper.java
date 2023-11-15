@@ -5,16 +5,14 @@
 
 package io.opentelemetry.javaagent.instrumentation.awslambdaevents.v2_2;
 
-import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Trigger;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Triggers;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.ApiGatewayHttpTrigger;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.ApiGatewayRestTrigger;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.AwsLambdaEventsInstrumenterFactory;
-import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.AwsLambdaSqsInstrumenterFactory;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.S3Trigger;
+import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.SqsTrigger;
 import io.opentelemetry.javaagent.bootstrap.internal.CommonConfig;
 
 public final class AwsLambdaInstrumentationHelper {
@@ -24,6 +22,7 @@ public final class AwsLambdaInstrumentationHelper {
           new ApiGatewayRestTrigger(),
           new ApiGatewayHttpTrigger(),
           new S3Trigger(),
+          new SqsTrigger(),
       },
       GlobalOpenTelemetry.get()
   );
@@ -42,13 +41,6 @@ public final class AwsLambdaInstrumentationHelper {
       .AwsLambdaFunctionInstrumenter
   functionInstrumenter() {
     return FUNCTION_INSTRUMENTER;
-  }
-
-  private static final Instrumenter<SQSEvent, Void> MESSAGE_TRACER =
-      AwsLambdaSqsInstrumenterFactory.forEvent(GlobalOpenTelemetry.get());
-
-  public static Instrumenter<SQSEvent, Void> messageInstrumenter() {
-    return MESSAGE_TRACER;
   }
 
   private AwsLambdaInstrumentationHelper() {}
