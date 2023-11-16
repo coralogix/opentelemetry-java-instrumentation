@@ -69,10 +69,12 @@ public final class SqsTrigger extends Trigger {
 
     SQSEvent event = requireCorrectEventType(request);
     for (SQSMessage message : event.getRecords()) {
-      TextMapPropagator propagator = GlobalOpenTelemetry.get().getPropagators().getTextMapPropagator();
+      TextMapPropagator propagator = GlobalOpenTelemetry.get().getPropagators()
+          .getTextMapPropagator();
       Context root = Context.root();
-      Context contextFromAttributes = propagator.extract(root, message.getMessageAttributes(), MessageAttributeGetter.INSTANCE);
-      if (contextFromAttributes != root){
+      Context contextFromAttributes = propagator.extract(root, message.getMessageAttributes(),
+          MessageAttributeGetter.INSTANCE);
+      if (contextFromAttributes != root) {
         SpanContext messageSpanCtx = Span.fromContext(contextFromAttributes).getSpanContext();
         if (messageSpanCtx.isValid()) {
           spanLinks.addLink(messageSpanCtx);
@@ -139,14 +141,21 @@ public final class SqsTrigger extends Trigger {
       return Optional.empty();
     }
 
-    String destination = event.getRecords().get(0).getEventSource();
+    String arn = event.getRecords().get(0).getEventSourceArn();
     for (int i = 1; i < event.getRecords().size(); i++) {
       SQSMessage message = event.getRecords().get(i);
-      if (!message.getEventSource().equals(destination)) {
+      if (!message.getEventSourceArn().equals(arn)) {
         return Optional.empty();
       }
     }
-    return Optional.of(destination);
+
+    String[] arnSegments = arn.split(":");
+    if (arnSegments.length >= 6) {
+      String queueName = arnSegments[5];
+      return Optional.of(queueName);
+    } else {
+      return Optional.of(arn);
+    }
   }
 
   @Override
