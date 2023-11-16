@@ -24,6 +24,7 @@ public class Triggers {
               triggers[i])
           .addAttributesExtractor(triggers[i])
           .setSpanStatusExtractor(triggers[i])
+          .addSpanLinksExtractor(triggers[i])
           .buildInstrumenter(triggers[i].spanKindExtractor());
     }
   }
