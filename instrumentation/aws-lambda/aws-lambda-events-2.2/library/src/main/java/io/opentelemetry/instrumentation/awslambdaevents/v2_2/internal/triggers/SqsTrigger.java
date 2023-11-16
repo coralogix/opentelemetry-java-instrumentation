@@ -62,6 +62,7 @@ public final class SqsTrigger extends Trigger {
     }
   }
 
+  // TODO Having multiple links to the same span looks weird in Coralogix UI. Not sure if we should solve it here or in the UI. Leaving it like this for now for consistency with python.
   @Override
   public void extract(SpanLinksBuilder spanLinks, Context parentContext,
       AwsLambdaRequest request) {
@@ -121,7 +122,6 @@ public final class SqsTrigger extends Trigger {
         // TODO python uses different attribute name
         attributes.put(RPC_REQUEST_PAYLOAD, limitedPayload(message.getBody()));
       }
-      // TODO links
     } catch (RuntimeException e) {
       logException(e, "SQSTrigger.onStart instrumentation failed");
     }
@@ -151,7 +151,7 @@ public final class SqsTrigger extends Trigger {
 
   @Override
   public SpanKindExtractor<AwsLambdaRequest> spanKindExtractor() {
-    return SpanKindExtractor.alwaysConsumer(); // TODO this is producer in python
+    return SpanKindExtractor.alwaysConsumer(); // TODO this is a producer in python
   }
 
   private static SQSEvent requireCorrectEventType(AwsLambdaRequest request) {
