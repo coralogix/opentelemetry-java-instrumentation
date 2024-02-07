@@ -1,6 +1,8 @@
 package io.opentelemetry.instrumentation.awslambdacore.v1_0.internal;
 
 import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
 
@@ -23,6 +25,7 @@ public class Triggers {
               "io.opentelemetry.aws-lambda-core-1.0",
               triggers[i])
           .addAttributesExtractor(triggers[i])
+          .addAttributesExtractor(AttributesExtractor.constant(AttributeKey.stringKey("cx.internal.span.role"), "trigger"))
           .setSpanStatusExtractor(triggers[i])
           .addSpanLinksExtractor(triggers[i])
           .buildInstrumenter(triggers[i].spanKindExtractor());

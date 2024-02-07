@@ -6,6 +6,8 @@
 package io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal;
 
 import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.api.instrumenter.SpanKindExtractor;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
@@ -28,6 +30,7 @@ public final class AwsLambdaEventsInstrumenterFactory {
                 "io.opentelemetry.aws-lambda-events-2.2",
                 AwsLambdaEventsInstrumenterFactory::spanName)
             .addAttributesExtractor(new AwsLambdaFunctionAttributesExtractor())
+            .addAttributesExtractor(AttributesExtractor.constant(AttributeKey.stringKey("cx.internal.span.role"), "function"))
             .buildInstrumenter(SpanKindExtractor.alwaysServer()));
   }
 
