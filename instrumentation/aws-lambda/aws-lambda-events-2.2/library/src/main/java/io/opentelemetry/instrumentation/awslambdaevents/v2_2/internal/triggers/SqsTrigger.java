@@ -93,6 +93,9 @@ public final class SqsTrigger extends Trigger {
 
     @Override
     public String get(Map<String, SQSEvent.MessageAttribute> map, String s) {
+      if (map == null) {
+        return null;
+      }
       SQSEvent.MessageAttribute attribute = map.get(s.toLowerCase(Locale.ROOT));
       if (attribute == null) {
         return null;
@@ -142,9 +145,13 @@ public final class SqsTrigger extends Trigger {
     }
 
     String arn = event.getRecords().get(0).getEventSourceArn();
+    if (arn == null) {
+      return Optional.empty();
+    }
     for (int i = 1; i < event.getRecords().size(); i++) {
       SQSMessage message = event.getRecords().get(i);
-      if (!message.getEventSourceArn().equals(arn)) {
+      String messageArn = message.getEventSourceArn();
+      if (messageArn == null || !message.getEventSourceArn().equals(arn)) {
         return Optional.empty();
       }
     }
