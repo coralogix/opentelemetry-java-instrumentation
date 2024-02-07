@@ -25,7 +25,7 @@ dependencies {
   // allows to get the function ARN
   testLibrary("com.amazonaws:aws-lambda-java-core:1.2.1")
   // allows to get the default events
-  testLibrary("com.amazonaws:aws-lambda-java-events:3.10.0")
+  testLibrary("com.amazonaws:aws-lambda-java-events:3.3.1")
 
   testImplementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure")
   testImplementation("io.opentelemetry:opentelemetry-extension-trace-propagators")
