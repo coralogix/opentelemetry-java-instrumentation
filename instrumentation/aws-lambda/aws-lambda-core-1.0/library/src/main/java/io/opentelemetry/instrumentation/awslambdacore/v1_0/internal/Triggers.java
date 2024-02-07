@@ -31,8 +31,6 @@ public class Triggers {
 
   public Instrumenter<AwsLambdaRequest, Object> getInstrumenterForRequest(
       AwsLambdaRequest request) {
-    System.out.println("Input Class: " + request.getInput().getClass());
-    System.out.println("Input: " + request.getInput());
     for (int i = 0; i < triggers.length; i++) {
       if (triggers[i].matches(request)) {
         return instrumenters[i];
