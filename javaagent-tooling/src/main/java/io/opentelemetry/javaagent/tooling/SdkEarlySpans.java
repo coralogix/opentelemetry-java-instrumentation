@@ -13,6 +13,10 @@ import java.util.concurrent.TimeUnit;
 
 class SdkEarlySpans implements OpenTelemetrySdkAccess.EarlySpans {
 
+  private static final String SPAN_STATE_ATTRIBUTE = "cx.internal.span.state";
+  private static final String SPAN_ID_ATTRIBUTE = "cx.internal.span.id";
+  private static final String TRACE_ID_ATTRIBUTE = "cx.internal.trace.id";
+
   private final OpenTelemetrySdk sdk;
   private final Tracer tracer;
 
@@ -31,16 +35,15 @@ class SdkEarlySpans implements OpenTelemetrySdkAccess.EarlySpans {
   @Override
   public void sendEarlySpans(Context upstreamContext, Context triggerContext,
       Context functionContext) {
-    System.out.println("EarlySpans.doSth");
 
-    createEarlySpan(upstreamContext, triggerContext, "trigger");
+    createEarlySpan(upstreamContext, triggerContext);
     Context parentForFunctionSpan = triggerContext != null ? triggerContext : upstreamContext;
-    createEarlySpan(parentForFunctionSpan, functionContext, "function");
+    createEarlySpan(parentForFunctionSpan, functionContext);
 
     sdk.getSdkTracerProvider().forceFlush().join(1, TimeUnit.SECONDS);
   }
 
-  private void createEarlySpan(Context parentContext, Context context, String spanRole) {
+  private void createEarlySpan(Context parentContext, Context context) {
     if (context != null) {
       ReadWriteSpan span = (ReadWriteSpan) Span.fromContextOrNull(context);
       if (span != null) {
@@ -55,9 +58,9 @@ class SdkEarlySpans implements OpenTelemetrySdkAccess.EarlySpans {
         }
         builder.setAllAttributes(spanData.getAttributes());
         // These are all internal attributes meant to be interpreted by coralogix-aws-lambda-telemetry-exporter
-        builder.setAttribute("cx.internal.span.id", spanData.getSpanId());
-        builder.setAttribute("cx.internal.trace.id", spanData.getTraceId());
-        builder.setAttribute("cx.internal.lambda.span.role", spanRole);
+        builder.setAttribute(SPAN_STATE_ATTRIBUTE, "early");
+        builder.setAttribute(TRACE_ID_ATTRIBUTE, spanData.getTraceId());
+        builder.setAttribute(SPAN_ID_ATTRIBUTE, spanData.getSpanId());
         Span earlySpan = builder.startSpan();
         earlySpan.end();
       }

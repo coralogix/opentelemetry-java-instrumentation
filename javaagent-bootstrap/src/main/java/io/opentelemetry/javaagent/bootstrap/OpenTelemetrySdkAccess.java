@@ -66,11 +66,9 @@ public final class OpenTelemetrySdkAccess {
    * from the agent class loader to execute the SDK's mechanism. Instrumentation must not call this.
    */
   public static void internalSetEarlySpans(EarlySpans earlySpans) {
-    if (OpenTelemetrySdkAccess.earlySpans != null) {
-      // Only possible by misuse of this API, just ignore.
-      return;
+    if (OpenTelemetrySdkAccess.earlySpans == null) {
+      OpenTelemetrySdkAccess.earlySpans = earlySpans;
     }
-    OpenTelemetrySdkAccess.earlySpans = earlySpans;
   }
 
   private OpenTelemetrySdkAccess() {}
