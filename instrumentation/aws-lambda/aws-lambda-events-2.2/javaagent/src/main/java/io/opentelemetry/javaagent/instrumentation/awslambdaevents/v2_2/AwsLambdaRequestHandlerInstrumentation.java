@@ -63,11 +63,11 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
         @Advice.Local("otelFunctionContext") io.opentelemetry.context.Context functionContext,
         @Advice.Local("otelFunctionScope") Scope functionScope) {
       input = AwsLambdaRequest.create(context, arg, Collections.emptyMap());
-      io.opentelemetry.context.Context parentContext =
+      io.opentelemetry.context.Context upstreamContext =
           AwsLambdaInstrumentationHelper.functionInstrumenter().extract(input);
 
       if (!AwsLambdaInstrumentationHelper.functionInstrumenter()
-          .shouldStart(parentContext, input)) {
+          .shouldStart(upstreamContext, input)) {
         return;
       }
 
@@ -75,14 +75,20 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
           .getInstrumenterForRequest(input);
 
       if (triggerInstrumentation != null) {
-        triggerContext = triggerInstrumentation.start(parentContext, input);
-        triggerScope = triggerContext.makeCurrent();
+        triggerContext = triggerInstrumentation.start(upstreamContext, input);
       }
 
       io.opentelemetry.context.Context parentForFunctionContext =
-          triggerContext != null ? triggerContext : parentContext;
+          triggerContext != null ? triggerContext : upstreamContext;
       functionContext =
           AwsLambdaInstrumentationHelper.functionInstrumenter().start(parentForFunctionContext, input);
+
+      OpenTelemetrySdkAccess.sendEarlySpans(upstreamContext, triggerContext, functionContext);
+
+      if (triggerContext != null) {
+        triggerScope = triggerContext.makeCurrent();
+      }
+
       functionScope = functionContext.makeCurrent();
     }
 

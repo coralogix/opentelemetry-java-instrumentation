@@ -38,6 +38,8 @@ public final class OpenTelemetryInstaller {
               .join(timeout, unit);
         });
 
+    OpenTelemetrySdkAccess.internalSetEarlySpans(new SdkEarlySpans(sdk));
+
     return autoConfiguredSdk;
   }
 
