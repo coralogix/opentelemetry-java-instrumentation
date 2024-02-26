@@ -15,13 +15,13 @@ import java.util.stream.Collectors;
  * any time.
  */
 public final class MapUtils {
-  public static Map<String, String> lowercaseMap(Map<String, String> source) {
+  public static <V> Map<String, V> lowercaseMap(Map<String, V> source) {
     return emptyIfNull(source).entrySet().stream()
         .filter(e -> e.getKey() != null)
         .collect(Collectors.toMap(e -> e.getKey().toLowerCase(Locale.ROOT), Map.Entry::getValue));
   }
 
-  public static Map<String, String> emptyIfNull(Map<String, String> map) {
+  public static <V> Map<String, V> emptyIfNull(Map<String, V> map) {
     return map == null ? Collections.emptyMap() : map;
   }
 
