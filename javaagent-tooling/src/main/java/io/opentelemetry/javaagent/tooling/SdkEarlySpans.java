@@ -4,6 +4,7 @@ import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
+import io.opentelemetry.instrumentation.api.internal.ConfigPropertiesUtil;
 import io.opentelemetry.javaagent.bootstrap.OpenTelemetrySdkAccess;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.trace.ReadWriteSpan;
@@ -16,6 +17,9 @@ class SdkEarlySpans implements OpenTelemetrySdkAccess.EarlySpans {
   private static final String SPAN_STATE_ATTRIBUTE = "cx.internal.span.state";
   private static final String SPAN_ID_ATTRIBUTE = "cx.internal.span.id";
   private static final String TRACE_ID_ATTRIBUTE = "cx.internal.trace.id";
+
+  private static final boolean EARLY_SPANS_ENABLED =
+      ConfigPropertiesUtil.getBoolean("otel.early-spans.enabled", false);
 
   private final OpenTelemetrySdk sdk;
   private final Tracer tracer;
@@ -35,12 +39,13 @@ class SdkEarlySpans implements OpenTelemetrySdkAccess.EarlySpans {
   @Override
   public void sendEarlySpans(Context upstreamContext, Context triggerContext,
       Context functionContext) {
+    if (EARLY_SPANS_ENABLED) {
+      createEarlySpan(upstreamContext, triggerContext);
+      Context parentForFunctionSpan = triggerContext != null ? triggerContext : upstreamContext;
+      createEarlySpan(parentForFunctionSpan, functionContext);
 
-    createEarlySpan(upstreamContext, triggerContext);
-    Context parentForFunctionSpan = triggerContext != null ? triggerContext : upstreamContext;
-    createEarlySpan(parentForFunctionSpan, functionContext);
-
-    sdk.getSdkTracerProvider().forceFlush().join(1, TimeUnit.SECONDS);
+      sdk.getSdkTracerProvider().forceFlush().join(1, TimeUnit.SECONDS);
+    }
   }
 
   private void createEarlySpan(Context parentContext, Context context) {
