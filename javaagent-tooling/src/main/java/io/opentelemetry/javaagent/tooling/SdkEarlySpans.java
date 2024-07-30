@@ -19,7 +19,7 @@ class SdkEarlySpans implements OpenTelemetrySdkAccess.EarlySpans {
   private static final String TRACE_ID_ATTRIBUTE = "cx.internal.trace.id";
 
   private static final boolean EARLY_SPANS_ENABLED =
-      ConfigPropertiesUtil.getBoolean("otel.early-spans.enabled", false);
+      ConfigPropertiesUtil.getBoolean("otel.early-spans.enabled", true);
 
   private final OpenTelemetrySdk sdk;
   private final Tracer tracer;
