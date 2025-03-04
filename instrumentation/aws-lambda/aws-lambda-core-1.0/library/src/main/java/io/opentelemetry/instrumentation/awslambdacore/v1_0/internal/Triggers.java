@@ -1,11 +1,16 @@
+/*
+ * Copyright The OpenTelemetry Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package io.opentelemetry.instrumentation.awslambdacore.v1_0.internal;
+
+import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.CxAttributes.SPAN_ROLE;
 
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
-
-import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.CxAttributes.SPAN_ROLE;
 
 /**
  * This class is internal and is hence not for public use. Its APIs are unstable and can change at
@@ -21,15 +26,13 @@ public class Triggers {
     this.triggers = triggers;
     this.instrumenters = new Instrumenter[triggers.length];
     for (int i = 0; i < triggers.length; i++) {
-      instrumenters[i] = Instrumenter.builder(
-              openTelemetry,
-              "io.opentelemetry.aws-lambda-core-1.0",
-              triggers[i])
-          .addAttributesExtractor(triggers[i])
-          .addAttributesExtractor(AttributesExtractor.constant(SPAN_ROLE, "trigger"))
-          .setSpanStatusExtractor(triggers[i])
-          .addSpanLinksExtractor(triggers[i])
-          .buildInstrumenter(triggers[i].spanKindExtractor());
+      instrumenters[i] =
+          Instrumenter.builder(openTelemetry, "io.opentelemetry.aws-lambda-core-1.0", triggers[i])
+              .addAttributesExtractor(triggers[i])
+              .addAttributesExtractor(AttributesExtractor.constant(SPAN_ROLE, "trigger"))
+              .setSpanStatusExtractor(triggers[i])
+              .addSpanLinksExtractor(triggers[i])
+              .buildInstrumenter(triggers[i].spanKindExtractor());
     }
   }
 

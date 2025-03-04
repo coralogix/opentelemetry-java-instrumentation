@@ -28,8 +28,10 @@ final class LambdaImpl {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   static {
-    // Force loading of LambdaClient; this ensures that an exception is thrown at this point when the
-    // Lambda library is not present, which will cause LambdaAccess to have enabled=false in library mode.
+    // Force loading of LambdaClient; this ensures that an exception is thrown at this point when
+    // the
+    // Lambda library is not present, which will cause LambdaAccess to have enabled=false in library
+    // mode.
     @SuppressWarnings("unused")
     String ensureLoadedDummy = LambdaClient.class.getName();
   }
@@ -52,15 +54,13 @@ final class LambdaImpl {
 
   private static SdkRequest injectIntoInvokeRequest(
       InvokeRequest request, Context otelContext, TextMapPropagator messagingPropagator) {
-    String modifiedClientContext = injectIntoClientContext(request.clientContext(), otelContext,
-        messagingPropagator);
+    String modifiedClientContext =
+        injectIntoClientContext(request.clientContext(), otelContext, messagingPropagator);
     return request.toBuilder().clientContext(modifiedClientContext).build();
   }
 
   private static String injectIntoClientContext(
-      String originalClientContext,
-      Context otelContext,
-      TextMapPropagator messagingPropagator) {
+      String originalClientContext, Context otelContext, TextMapPropagator messagingPropagator) {
 
     try {
       Map<String, Object> clientContext = deserialiseClientContext(originalClientContext);
@@ -68,21 +68,18 @@ final class LambdaImpl {
         clientContext = new HashMap<>();
       }
 
-      Object customObject = clientContext.computeIfAbsent("custom",
-          k -> new HashMap<String, String>());
+      Object customObject =
+          clientContext.computeIfAbsent("custom", k -> new HashMap<String, String>());
       if (!(customObject instanceof Map)) {
         return originalClientContext;
       }
 
       @SuppressWarnings("unchecked")
       Map<String, String> custom = (Map<String, String>) customObject;
-      messagingPropagator.inject(
-          otelContext,
-          custom,
-          MapSetter.INSTANCE
-      );
+      messagingPropagator.inject(otelContext, custom, MapSetter.INSTANCE);
       String modifiedClientContext = serialiseClientContext(clientContext);
-      // Make sure we don't exceed the size limit imposed by AWS https://docs.aws.amazon.com/lambda/latest/dg/API_Invoke.html
+      // Make sure we don't exceed the size limit imposed by AWS
+      // https://docs.aws.amazon.com/lambda/latest/dg/API_Invoke.html
       if (modifiedClientContext.length() <= 3583) {
         return modifiedClientContext;
       } else {
@@ -103,18 +100,17 @@ final class LambdaImpl {
         return null;
       } else {
         byte[] json = Base64.getDecoder().decode(base64ClientContext);
-        TypeReference<HashMap<String, Object>> typeRef
-            = new TypeReference<HashMap<String, Object>>() {};
+        TypeReference<HashMap<String, Object>> typeRef =
+            new TypeReference<HashMap<String, Object>>() {};
         return OBJECT_MAPPER.readValue(json, typeRef);
       }
     } catch (Throwable e) {
-      throw new Exception("Failed to deserialize client context \"" + base64ClientContext + "\"",
-          e);
+      throw new Exception(
+          "Failed to deserialize client context \"" + base64ClientContext + "\"", e);
     }
   }
 
-  private static String serialiseClientContext(Map<String, Object> context)
-      throws Exception {
+  private static String serialiseClientContext(Map<String, Object> context) throws Exception {
     try {
       byte[] json = OBJECT_MAPPER.writeValueAsBytes(context);
       return Base64.getEncoder().encodeToString(json);

@@ -1,3 +1,8 @@
+/*
+ * Copyright The OpenTelemetry Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package io.opentelemetry.instrumentation.awslambdacore.v1_0.internal;
 
 import io.opentelemetry.api.common.AttributeKey;
@@ -7,7 +12,8 @@ import io.opentelemetry.api.common.AttributeKey;
  * any time.
  */
 public class CxAttributes {
-  public static final AttributeKey<String> SPAN_ROLE = AttributeKey.stringKey("cx.internal.span.role");
+  public static final AttributeKey<String> SPAN_ROLE =
+      AttributeKey.stringKey("cx.internal.span.role");
 
-  private CxAttributes(){}
+  private CxAttributes() {}
 }

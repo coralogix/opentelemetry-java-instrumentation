@@ -1,4 +1,15 @@
+/*
+ * Copyright The OpenTelemetry Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers;
+
+import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.FAAS_TRIGGER_TYPE;
+import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.RPC_REQUEST_PAYLOAD;
+import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.limitedPayload;
+import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.logException;
+import static io.opentelemetry.semconv.SemanticAttributes.FAAS_TRIGGER;
 
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent.SQSMessage;
@@ -17,18 +28,11 @@ import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Trigger;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerMismatchException;
 import io.opentelemetry.semconv.SemanticAttributes;
-
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-
-import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.FAAS_TRIGGER_TYPE;
-import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.RPC_REQUEST_PAYLOAD;
-import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.limitedPayload;
-import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.logException;
-import static io.opentelemetry.semconv.SemanticAttributes.FAAS_TRIGGER;
+import javax.annotation.Nullable;
 
 /**
  * This class is internal and is hence not for public use. Its APIs are unstable and can change at
@@ -55,25 +59,28 @@ public final class SqsTrigger extends Trigger {
   }
 
   @Override
-  public void extract(SpanStatusBuilder spanStatusBuilder, AwsLambdaRequest request,
-      @Nullable Object response, @Nullable Throwable error) {
+  public void extract(
+      SpanStatusBuilder spanStatusBuilder,
+      AwsLambdaRequest request,
+      @Nullable Object response,
+      @Nullable Throwable error) {
     if (error != null) {
       spanStatusBuilder.setStatus(StatusCode.ERROR);
     }
   }
 
-  // TODO Having multiple links to the same span looks weird in Coralogix UI. Not sure if we should solve it here or in the UI. Leaving it like this for now for consistency with python.
+  // TODO Having multiple links to the same span looks weird in Coralogix UI. Not sure if we should
+  // solve it here or in the UI. Leaving it like this for now for consistency with python.
   @Override
-  public void extract(SpanLinksBuilder spanLinks, Context parentContext,
-      AwsLambdaRequest request) {
+  public void extract(SpanLinksBuilder spanLinks, Context parentContext, AwsLambdaRequest request) {
 
     SQSEvent event = requireCorrectEventType(request);
     for (SQSMessage message : event.getRecords()) {
-      TextMapPropagator propagator = GlobalOpenTelemetry.get().getPropagators()
-          .getTextMapPropagator();
+      TextMapPropagator propagator =
+          GlobalOpenTelemetry.get().getPropagators().getTextMapPropagator();
       Context root = Context.root();
-      Context contextFromAttributes = propagator.extract(root, message.getMessageAttributes(),
-          MessageAttributeGetter.INSTANCE);
+      Context contextFromAttributes =
+          propagator.extract(root, message.getMessageAttributes(), MessageAttributeGetter.INSTANCE);
       if (contextFromAttributes != root) {
         SpanContext messageSpanCtx = Span.fromContext(contextFromAttributes).getSpanContext();
         if (messageSpanCtx.isValid()) {
@@ -105,8 +112,8 @@ public final class SqsTrigger extends Trigger {
   }
 
   @Override
-  public void onStart(AttributesBuilder attributes, Context parentContext,
-      AwsLambdaRequest request) {
+  public void onStart(
+      AttributesBuilder attributes, Context parentContext, AwsLambdaRequest request) {
 
     try {
       SQSEvent event = requireCorrectEventType(request);
@@ -133,12 +140,16 @@ public final class SqsTrigger extends Trigger {
   }
 
   @Override
-  public void onEnd(AttributesBuilder attributes, Context context,
-      AwsLambdaRequest request, @Nullable Object response, @Nullable Throwable error) {
-  }
+  public void onEnd(
+      AttributesBuilder attributes,
+      Context context,
+      AwsLambdaRequest request,
+      @Nullable Object response,
+      @Nullable Throwable error) {}
 
   // OTEL refers to the queue/topic as "destination"
-  // Based on io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.AwsLambdaSqsInstrumenterFactory#spanName
+  // Based on
+  // io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.AwsLambdaSqsInstrumenterFactory#spanName
   public Optional<String> commonDestination(SQSEvent event) {
     if (event.getRecords().isEmpty()) {
       return Optional.empty();

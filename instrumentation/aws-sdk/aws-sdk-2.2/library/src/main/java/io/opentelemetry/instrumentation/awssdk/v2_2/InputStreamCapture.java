@@ -1,11 +1,16 @@
+/*
+ * Copyright The OpenTelemetry Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package io.opentelemetry.instrumentation.awssdk.v2_2;
 
-import software.amazon.awssdk.http.Abortable;
-import software.amazon.awssdk.http.AbortableInputStream;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import software.amazon.awssdk.http.Abortable;
+import software.amazon.awssdk.http.AbortableInputStream;
 
 public class InputStreamCapture {
 
@@ -31,26 +36,27 @@ public class InputStreamCapture {
     }
 
     InputStream is1 = bis;
-    if (exception != null){
+    if (exception != null) {
       IOException movedException = exception;
-      is1 = new InputStream() {
-        @Override
-        public int read() throws IOException {
-          throw movedException;
-        }
+      is1 =
+          new InputStream() {
+            @Override
+            public int read() throws IOException {
+              throw movedException;
+            }
 
-        @Override
-        public int read(byte[] b, int off, int len) throws IOException {
-          throw movedException;
-        }
-      };
+            @Override
+            public int read(byte[] b, int off, int len) throws IOException {
+              throw movedException;
+            }
+          };
     }
 
     InputStream is2;
     if (inputStream instanceof Abortable) {
-        is2 = AbortableInputStream.create(is1, (Abortable) inputStream);
+      is2 = AbortableInputStream.create(is1, (Abortable) inputStream);
     } else {
-        is2 = AbortableInputStream.create(is1);
+      is2 = AbortableInputStream.create(is1);
     }
 
     return new InputStreamCapture(is2, captured);
@@ -61,7 +67,8 @@ public class InputStreamCapture {
       int bytesLeftUntilMax = maxBytes;
       byte[] buffer = new byte[4096];
       int n;
-      while (bytesLeftUntilMax > 0 && (n = is.read(buffer, 0, Math.min(buffer.length, bytesLeftUntilMax))) != -1) {
+      while (bytesLeftUntilMax > 0
+          && (n = is.read(buffer, 0, Math.min(buffer.length, bytesLeftUntilMax))) != -1) {
         output.write(buffer, 0, n);
         bytesLeftUntilMax -= n;
       }

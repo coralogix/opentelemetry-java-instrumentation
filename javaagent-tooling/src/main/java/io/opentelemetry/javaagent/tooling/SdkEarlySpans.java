@@ -1,3 +1,8 @@
+/*
+ * Copyright The OpenTelemetry Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package io.opentelemetry.javaagent.tooling;
 
 import io.opentelemetry.api.trace.Span;
@@ -26,19 +31,17 @@ class SdkEarlySpans implements OpenTelemetrySdkAccess.EarlySpans {
 
   SdkEarlySpans(OpenTelemetrySdk sdk) {
     this.sdk = sdk;
-    this.tracer = sdk.getTracerProvider()
-        .tracerBuilder("coralogix-autoinstrumentation")
-        .build();
+    this.tracer = sdk.getTracerProvider().tracerBuilder("coralogix-autoinstrumentation").build();
   }
 
   /**
-   * We send copies of the trigger and function spans at the start of the invocation,
-   * so that coralogix-aws-lambda-telemetry-exporter can use them
-   * in case the function crashes/timeouts and doesn't deliver the trace.
+   * We send copies of the trigger and function spans at the start of the invocation, so that
+   * coralogix-aws-lambda-telemetry-exporter can use them in case the function crashes/timeouts and
+   * doesn't deliver the trace.
    */
   @Override
-  public void sendEarlySpans(Context upstreamContext, Context triggerContext,
-      Context functionContext) {
+  public void sendEarlySpans(
+      Context upstreamContext, Context triggerContext, Context functionContext) {
     if (EARLY_SPANS_ENABLED) {
       createEarlySpan(upstreamContext, triggerContext);
       Context parentForFunctionSpan = triggerContext != null ? triggerContext : upstreamContext;
@@ -62,7 +65,8 @@ class SdkEarlySpans implements OpenTelemetrySdkAccess.EarlySpans {
           builder.addLink(link.getSpanContext());
         }
         builder.setAllAttributes(spanData.getAttributes());
-        // These are all internal attributes meant to be interpreted by coralogix-aws-lambda-telemetry-exporter
+        // These are all internal attributes meant to be interpreted by
+        // coralogix-aws-lambda-telemetry-exporter
         builder.setAttribute(SPAN_STATE_ATTRIBUTE, "early");
         builder.setAttribute(TRACE_ID_ATTRIBUTE, spanData.getTraceId());
         builder.setAttribute(SPAN_ID_ATTRIBUTE, spanData.getSpanId());

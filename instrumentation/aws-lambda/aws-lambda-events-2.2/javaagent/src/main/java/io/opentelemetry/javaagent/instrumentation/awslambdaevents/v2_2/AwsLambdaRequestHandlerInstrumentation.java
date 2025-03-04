@@ -57,7 +57,8 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
         @Advice.Argument(value = 0, typing = Typing.DYNAMIC) Object arg,
         @Advice.Argument(1) Context context,
         @Advice.Local("otelInput") AwsLambdaRequest input,
-        @Advice.Local("otelTriggerInstrumentation") Instrumenter<AwsLambdaRequest, Object> triggerInstrumentation,
+        @Advice.Local("otelTriggerInstrumentation")
+            Instrumenter<AwsLambdaRequest, Object> triggerInstrumentation,
         @Advice.Local("otelTriggerContext") io.opentelemetry.context.Context triggerContext,
         @Advice.Local("otelTriggerScope") Scope triggerScope,
         @Advice.Local("otelFunctionContext") io.opentelemetry.context.Context functionContext,
@@ -71,8 +72,8 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
         return;
       }
 
-      triggerInstrumentation = AwsLambdaInstrumentationHelper.getTriggers()
-          .getInstrumenterForRequest(input);
+      triggerInstrumentation =
+          AwsLambdaInstrumentationHelper.getTriggers().getInstrumenterForRequest(input);
 
       if (triggerInstrumentation != null) {
         triggerContext = triggerInstrumentation.start(upstreamContext, input);
@@ -81,7 +82,8 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
       io.opentelemetry.context.Context parentForFunctionContext =
           triggerContext != null ? triggerContext : upstreamContext;
       functionContext =
-          AwsLambdaInstrumentationHelper.functionInstrumenter().start(parentForFunctionContext, input);
+          AwsLambdaInstrumentationHelper.functionInstrumenter()
+              .start(parentForFunctionContext, input);
 
       OpenTelemetrySdkAccess.sendEarlySpans(upstreamContext, triggerContext, functionContext);
 
@@ -99,7 +101,8 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
         @Advice.Return(typing = Typing.DYNAMIC) Object response,
         @Advice.Thrown Throwable throwable,
         @Advice.Local("otelInput") AwsLambdaRequest input,
-        @Advice.Local("otelTriggerInstrumentation") Instrumenter<AwsLambdaRequest, Object> triggerInstrumentation,
+        @Advice.Local("otelTriggerInstrumentation")
+            Instrumenter<AwsLambdaRequest, Object> triggerInstrumentation,
         @Advice.Local("otelTriggerContext") io.opentelemetry.context.Context triggerContext,
         @Advice.Local("otelTriggerScope") Scope triggerScope,
         @Advice.Local("otelFunctionContext") io.opentelemetry.context.Context functionContext,
@@ -113,8 +116,7 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
 
       if (triggerScope != null) {
         triggerScope.close();
-        triggerInstrumentation
-            .end(triggerContext, input, response, throwable);
+        triggerInstrumentation.end(triggerContext, input, response, throwable);
       }
 
       OpenTelemetrySdkAccess.forceFlush(1, TimeUnit.SECONDS);

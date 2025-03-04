@@ -24,11 +24,9 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import io.opentelemetry.semconv.SemanticAttributes;
-import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -277,7 +275,8 @@ final class TracingExecutionInterceptor implements ExecutionInterceptor {
     if (requestBody.isPresent()) {
       RequestBody body = requestBody.get();
       try (InputStream is = body.contentStreamProvider().newStream()) {
-        // This may split the payload in the middle of a UTF-8 character, but that doesn't cause any issues other than showing a special unicode replacement character.
+        // This may split the payload in the middle of a UTF-8 character, but that doesn't cause any
+        // issues other than showing a special unicode replacement character.
         byte[] bytes = toByteArrayWithLimit(is, OTEL_PAYLOAD_SIZE_LIMIT);
         String string = new String(bytes, StandardCharsets.UTF_8);
         span.setAttribute(RPC_REQUEST_PAYLOAD, string);
@@ -362,10 +361,10 @@ final class TracingExecutionInterceptor implements ExecutionInterceptor {
     }
   }
 
-  public Optional<InputStream> captureResponsePayloadAsAttribute(Context.ModifyHttpResponse context,
-      ExecutionAttributes executionAttributes) {
-    Optional<InputStream> content = ExecutionInterceptor.super.modifyHttpResponseContent(context,
-        executionAttributes);
+  public Optional<InputStream> captureResponsePayloadAsAttribute(
+      Context.ModifyHttpResponse context, ExecutionAttributes executionAttributes) {
+    Optional<InputStream> content =
+        ExecutionInterceptor.super.modifyHttpResponseContent(context, executionAttributes);
 
     io.opentelemetry.context.Context otelContext = getContext(executionAttributes);
     if (otelContext == null) {
@@ -373,9 +372,11 @@ final class TracingExecutionInterceptor implements ExecutionInterceptor {
     }
 
     if (content.isPresent()) {
-      InputStreamCapture capture = InputStreamCapture.capture(content.get(), OTEL_PAYLOAD_SIZE_LIMIT);
+      InputStreamCapture capture =
+          InputStreamCapture.capture(content.get(), OTEL_PAYLOAD_SIZE_LIMIT);
       Span span = Span.fromContext(otelContext);
-      span.setAttribute(RPC_RESPONSE_PAYLOAD, new String(capture.capturedData, StandardCharsets.UTF_8));
+      span.setAttribute(
+          RPC_RESPONSE_PAYLOAD, new String(capture.capturedData, StandardCharsets.UTF_8));
 
       return Optional.of(capture.inputStream);
     } else {

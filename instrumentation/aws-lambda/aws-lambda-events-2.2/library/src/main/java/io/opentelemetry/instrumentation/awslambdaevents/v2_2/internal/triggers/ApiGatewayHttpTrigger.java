@@ -1,20 +1,9 @@
-package io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers;
+/*
+ * Copyright The OpenTelemetry Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
-import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent.RequestContext;
-import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPResponse;
-import io.opentelemetry.api.common.AttributesBuilder;
-import io.opentelemetry.api.trace.StatusCode;
-import io.opentelemetry.context.Context;
-import io.opentelemetry.instrumentation.api.instrumenter.SpanKindExtractor;
-import io.opentelemetry.instrumentation.api.instrumenter.SpanStatusBuilder;
-import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
-import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Trigger;
-import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerMismatchException;
-import io.opentelemetry.semconv.SemanticAttributes.FaasTriggerValues;
-import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.Map;
+package io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers;
 
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.MapUtils.lowercaseMap;
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.FAAS_TRIGGER_TYPE;
@@ -31,6 +20,22 @@ import static io.opentelemetry.semconv.SemanticAttributes.HTTP_URL;
 import static io.opentelemetry.semconv.SemanticAttributes.NET_HOST_NAME;
 import static io.opentelemetry.semconv.SemanticAttributes.NET_SOCK_PEER_ADDR;
 import static io.opentelemetry.semconv.SemanticAttributes.USER_AGENT_ORIGINAL;
+
+import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
+import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent.RequestContext;
+import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPResponse;
+import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.instrumentation.api.instrumenter.SpanKindExtractor;
+import io.opentelemetry.instrumentation.api.instrumenter.SpanStatusBuilder;
+import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
+import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Trigger;
+import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerMismatchException;
+import io.opentelemetry.semconv.SemanticAttributes.FaasTriggerValues;
+import java.util.HashMap;
+import java.util.Map;
+import javax.annotation.Nullable;
 
 /**
  * This class is internal and is hence not for public use. Its APIs are unstable and can change at
@@ -51,8 +56,11 @@ public final class ApiGatewayHttpTrigger extends Trigger {
   }
 
   @Override
-  public void extract(SpanStatusBuilder spanStatusBuilder, AwsLambdaRequest request,
-      @Nullable Object response, @Nullable Throwable error) {
+  public void extract(
+      SpanStatusBuilder spanStatusBuilder,
+      AwsLambdaRequest request,
+      @Nullable Object response,
+      @Nullable Throwable error) {
     if (error != null) {
       spanStatusBuilder.setStatus(StatusCode.ERROR);
       return;
@@ -70,8 +78,8 @@ public final class ApiGatewayHttpTrigger extends Trigger {
   }
 
   @Override
-  public void onStart(AttributesBuilder attributes, Context parentContext,
-      AwsLambdaRequest request) {
+  public void onStart(
+      AttributesBuilder attributes, Context parentContext, AwsLambdaRequest request) {
 
     // TODO consider using some things from io.opentelemetry.instrumentation.api.instrumenter.http
     try {
@@ -85,10 +93,10 @@ public final class ApiGatewayHttpTrigger extends Trigger {
       attributes.put(HTTP_METHOD, http.getMethod());
       attributes.put(HTTP_ROUTE, getRoute(req)); // TODO nodejs doesn't do this
       attributes.put(HTTP_URL, getHttpUrl(req, headers));
-      attributes.put(NET_SOCK_PEER_ADDR,
-          http.getSourceIp()); // TODO change this in python and nodejs
-      attributes.put(USER_AGENT_ORIGINAL,
-          headers.get("user-agent")); // TODO change this in python and nodejs
+      attributes.put(
+          NET_SOCK_PEER_ADDR, http.getSourceIp()); // TODO change this in python and nodejs
+      attributes.put(
+          USER_AGENT_ORIGINAL, headers.get("user-agent")); // TODO change this in python and nodejs
       attributes.put(HTTP_SCHEME, headers.get("x-forwarded-proto"));
       attributes.put(NET_HOST_NAME, headers.get("host")); // TODO change this in nodejs
 
@@ -97,7 +105,8 @@ public final class ApiGatewayHttpTrigger extends Trigger {
       // TODO nodejs doesn't do this
       Map<String, String> mvHeaders = orEmpty(headers);
       for (Map.Entry<String, String> entry : mvHeaders.entrySet()) {
-        // See https://opentelemetry.io/docs/reference/specification/trace/semantic_conventions/http/#http-request-and-response-headers
+        // See
+        // https://opentelemetry.io/docs/reference/specification/trace/semantic_conventions/http/#http-request-and-response-headers
         attributes.put("http.request.header." + entry.getKey().replace('-', '_'), entry.getValue());
       }
 
@@ -118,8 +127,7 @@ public final class ApiGatewayHttpTrigger extends Trigger {
     }
   }
 
-  private static String getHttpUrl(
-      APIGatewayV2HTTPEvent request, Map<String, String> headers) {
+  private static String getHttpUrl(APIGatewayV2HTTPEvent request, Map<String, String> headers) {
     StringBuilder str = new StringBuilder();
 
     String scheme = headers.get("x-forwarded-proto");
@@ -151,8 +159,12 @@ public final class ApiGatewayHttpTrigger extends Trigger {
   }
 
   @Override
-  public void onEnd(AttributesBuilder attributes, Context context,
-      AwsLambdaRequest request, @Nullable Object response, @Nullable Throwable error) {
+  public void onEnd(
+      AttributesBuilder attributes,
+      Context context,
+      AwsLambdaRequest request,
+      @Nullable Object response,
+      @Nullable Throwable error) {
 
     APIGatewayV2HTTPResponse res = requireCorrectResponseType(response);
     try {
