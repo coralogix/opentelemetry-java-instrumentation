@@ -5,13 +5,13 @@
 
 package io.opentelemetry.javaagent.instrumentation.awssdk.v2_2;
 
+import static net.bytebuddy.matcher.ElementMatchers.none;
+
 import com.google.auto.service.AutoService;
 import io.opentelemetry.instrumentation.awssdk.v2_2.LambdaAdviceBridge;
 import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;
 import net.bytebuddy.asm.Advice;
-
-import static net.bytebuddy.matcher.ElementMatchers.none;
 
 @AutoService(InstrumentationModule.class)
 public class LambdaInstrumentationModule extends AbstractAwsSdkInstrumentationModule {

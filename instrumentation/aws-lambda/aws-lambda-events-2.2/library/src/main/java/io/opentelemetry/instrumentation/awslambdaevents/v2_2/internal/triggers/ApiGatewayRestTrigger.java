@@ -1,3 +1,8 @@
+/*
+ * Copyright The OpenTelemetry Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers;
 
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.MapUtils.emptyIfNull;
@@ -57,8 +62,11 @@ public final class ApiGatewayRestTrigger extends Trigger {
   }
 
   @Override
-  public void extract(SpanStatusBuilder spanStatusBuilder, AwsLambdaRequest request,
-      @Nullable Object response, @Nullable Throwable error) {
+  public void extract(
+      SpanStatusBuilder spanStatusBuilder,
+      AwsLambdaRequest request,
+      @Nullable Object response,
+      @Nullable Throwable error) {
     if (error != null) {
       spanStatusBuilder.setStatus(StatusCode.ERROR);
       return;
@@ -76,8 +84,8 @@ public final class ApiGatewayRestTrigger extends Trigger {
   }
 
   @Override
-  public void onStart(AttributesBuilder attributes, Context parentContext,
-      AwsLambdaRequest request) {
+  public void onStart(
+      AttributesBuilder attributes, Context parentContext, AwsLambdaRequest request) {
 
     // TODO consider using some things from io.opentelemetry.instrumentation.api.instrumenter.http
     try {
@@ -91,10 +99,10 @@ public final class ApiGatewayRestTrigger extends Trigger {
       attributes.put(HTTP_METHOD, requestContext.getHttpMethod());
       attributes.put(HTTP_ROUTE, requestContext.getResourcePath());
       attributes.put(HTTP_URL, getHttpUrl(req, headers));
-      attributes.put(NET_SOCK_PEER_ADDR,
-          identity.getSourceIp()); // TODO change this in python and nodejs
-      attributes.put(USER_AGENT_ORIGINAL,
-          headers.get("user-agent")); // TODO change this in python and nodejs
+      attributes.put(
+          NET_SOCK_PEER_ADDR, identity.getSourceIp()); // TODO change this in python and nodejs
+      attributes.put(
+          USER_AGENT_ORIGINAL, headers.get("user-agent")); // TODO change this in python and nodejs
       attributes.put(HTTP_SCHEME, headers.get("x-forwarded-proto"));
       attributes.put(NET_HOST_NAME, headers.get("host")); // TODO change this in nodejs
 
@@ -104,7 +112,8 @@ public final class ApiGatewayRestTrigger extends Trigger {
       for (Map.Entry<String, List<String>> entry : mvHeaders.entrySet()) {
         List<String> values = entry.getValue();
         // TODO nodejs doesn't replace `-` with `_` (nor does it convert to lowercase)
-        // See https://opentelemetry.io/docs/reference/specification/trace/semantic_conventions/http/#http-request-and-response-headers
+        // See
+        // https://opentelemetry.io/docs/reference/specification/trace/semantic_conventions/http/#http-request-and-response-headers
         String attributeName = "http.request.header." + entry.getKey().replace('-', '_');
         if (values.size() == 1) {
           attributes.put(attributeName, values.get(0));
@@ -167,8 +176,12 @@ public final class ApiGatewayRestTrigger extends Trigger {
   }
 
   @Override
-  public void onEnd(AttributesBuilder attributes, Context context,
-      AwsLambdaRequest request, @Nullable Object response, @Nullable Throwable error) {
+  public void onEnd(
+      AttributesBuilder attributes,
+      Context context,
+      AwsLambdaRequest request,
+      @Nullable Object response,
+      @Nullable Throwable error) {
 
     APIGatewayProxyResponseEvent res = requireCorrectResponseType(response);
     try {

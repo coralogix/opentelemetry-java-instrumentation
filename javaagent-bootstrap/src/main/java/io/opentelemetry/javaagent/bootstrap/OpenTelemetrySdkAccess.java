@@ -46,9 +46,7 @@ public final class OpenTelemetrySdkAccess {
     OpenTelemetrySdkAccess.forceFlush = forceFlush;
   }
 
-  /**
-   * Sends copies of trigger and function spans early.
-   */
+  /** Sends copies of trigger and function spans early. */
   public interface EarlySpans {
     /** Sends copies of trigger and function spans early. */
     void sendEarlySpans(Context upstreamContext, Context triggerContext, Context functionContext);
@@ -57,13 +55,14 @@ public final class OpenTelemetrySdkAccess {
   private static volatile EarlySpans earlySpans;
 
   /** Sends copies of trigger and function spans early. */
-  public static void sendEarlySpans(Context upstreamContext, Context triggerContext, Context functionContext) {
+  public static void sendEarlySpans(
+      Context upstreamContext, Context triggerContext, Context functionContext) {
     earlySpans.sendEarlySpans(upstreamContext, triggerContext, functionContext);
   }
 
   /**
-   * Sets the earlySpans. This is called
-   * from the agent class loader to execute the SDK's mechanism. Instrumentation must not call this.
+   * Sets the earlySpans. This is called from the agent class loader to execute the SDK's mechanism.
+   * Instrumentation must not call this.
    */
   public static void internalSetEarlySpans(EarlySpans earlySpans) {
     if (OpenTelemetrySdkAccess.earlySpans == null) {

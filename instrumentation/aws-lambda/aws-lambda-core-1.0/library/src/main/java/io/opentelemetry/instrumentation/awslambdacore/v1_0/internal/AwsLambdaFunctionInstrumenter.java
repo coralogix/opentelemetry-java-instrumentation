@@ -52,13 +52,13 @@ public class AwsLambdaFunctionInstrumenter {
     Context root = Context.root();
 
     Context contextFromHeaders = propagator.extract(root, input.getHeaders(), MapGetter.INSTANCE);
-    if (contextFromHeaders != root){
+    if (contextFromHeaders != root) {
       return contextFromHeaders;
     }
 
-    if (input.getAwsContext() != null &&
-        input.getAwsContext().getClientContext() != null &&
-        input.getAwsContext().getClientContext().getCustom() != null) {
+    if (input.getAwsContext() != null
+        && input.getAwsContext().getClientContext() != null
+        && input.getAwsContext().getClientContext().getCustom() != null) {
       Map<String, String> custom = input.getAwsContext().getClientContext().getCustom();
       return propagator.extract(root, custom, MapGetter.INSTANCE);
     }
