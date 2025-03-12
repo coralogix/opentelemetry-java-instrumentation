@@ -21,16 +21,13 @@ dependencies {
   testLibrary("software.amazon.awssdk:s3:2.2.0")
   testLibrary("software.amazon.awssdk:sqs:2.2.0")
   testLibrary("software.amazon.awssdk:sns:2.2.0")
-
-  // last version that does not use json protocol
-  latestDepTestLibrary("software.amazon.awssdk:sqs:2.21.17")
 }
 
 tasks {
   test {
     systemProperty("otel.instrumentation.aws-sdk.experimental-span-attributes", true)
-    systemProperty("otel.instrumentation.aws-sdk.experimental-use-propagator-for-messaging", true)
     systemProperty("otel.instrumentation.aws-sdk.experimental-record-individual-http-error", true)
     systemProperty("otel.instrumentation.messaging.experimental.capture-headers", "test-message-header")
+    systemProperty("testLatestDeps", findProperty("testLatestDeps") as Boolean)
   }
 }

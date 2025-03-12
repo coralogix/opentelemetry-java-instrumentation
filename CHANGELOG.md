@@ -1,5 +1,88 @@
 # Changelog
 
+## Version 1.33.6 (2024-08-22)
+
+### 📈 Enhancements
+
+- Backport: Update the OpenTelemetry SDK version to 1.41.0
+  ([#12071](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/12071))
+
+## Version 1.33.5 (2024-07-25)
+
+### 📈 Enhancements
+
+- Backport: Update the OpenTelemetry SDK version to 1.40.0
+  ([#11879](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/11879))
+
+## Version 1.33.4 (2024-06-19)
+
+### 📈 Enhancements
+
+- Backport: Undertow, run response customizer on all ServerConnection implementations
+  ([#11548](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/11548))
+- Backport: Improve security manager support
+  ([#11606](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/11606))
+- Backport: Update the OpenTelemetry SDK version to 1.39.0
+  ([#11603](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/11603))
+
+### 🛠️ Bug fixes
+
+- Backport: Avoid NullPointerException when JMS destination is not available
+  ([#11577](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/11577))
+- Backport: Fix Spring Kafka instrumentation closing the trace too early
+  ([#11592](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/11592))
+- Backport: Fix gRPC instrumentation adding duplicates to metadata instead of overwriting
+  ([#11604](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/11604))
+- Backport: Fix request header capture corrupting tomcat request
+  ([#11607](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/11607))
+
+## Version 1.33.3 (2024-05-21)
+
+### 📈 Enhancements
+
+- Backport: Fix the logic to get container.id resource attribute
+  ([#11333](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/11333))
+- Backport: Update the OpenTelemetry SDK version to 1.38.0
+  ([#11386](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/11386))
+- Backport: Fix a bug in undertow instrumentation related to HTTP/2
+  ([#11387](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/11387))
+- Backport: Fix container.id issue in some crio scenarios
+  ([#11405](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/11405))
+
+## Version 1.33.2 (2024-04-20)
+
+### 📈 Enhancements
+
+- Backport: elasticsearch-java 7.17.20 has native instrumentation
+  ([#11098](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/11098))
+- Update the OpenTelemetry SDK version to 1.37.0
+  ([#11118](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/11118))
+- Backport: graphql-java-22.0 support
+  ([#11171](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/11171))
+
+## Version 1.33.1 (2024-03-20)
+
+### 📈 Enhancements
+
+- Backport: Capture `http.route` for akka-http
+  ([#10777](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/10777))
+- Update the OpenTelemetry SDK version to 1.36.0
+  ([#10866](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/10866))
+
+## Version 1.33.0 (2024-02-28)
+
+### Migration notes
+
+- The deprecated Jaeger exporter has been removed
+  ([#10524](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/10524))
+
+### 📈 Enhancements
+
+- Backport: Set route only on the SERVER span
+  ([#10580](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/10580))
+- Update the OpenTelemetry SDK version to 1.35.0
+  ([#10524](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/10524))
+
 ## Version 1.32.1 (2024-02-02)
 
 ### 📈 Enhancements

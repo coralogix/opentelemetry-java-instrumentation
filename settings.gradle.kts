@@ -1,26 +1,26 @@
 pluginManagement {
   plugins {
-    id("com.github.jk1.dependency-license-report") version "2.5"
-    id("com.google.cloud.tools.jib") version "3.4.0"
+    id("com.github.jk1.dependency-license-report") version "2.9"
+    id("com.google.cloud.tools.jib") version "3.4.3"
     id("com.gradle.plugin-publish") version "1.2.1"
-    id("io.github.gradle-nexus.publish-plugin") version "1.3.0"
-    id("org.jetbrains.kotlin.jvm") version "1.9.20"
+    id("io.github.gradle-nexus.publish-plugin") version "2.0.0"
+    id("org.jetbrains.kotlin.jvm") version "2.0.20"
     id("org.xbib.gradle.plugin.jflex") version "3.0.2"
     id("org.unbroken-dome.xjc") version "2.0.0"
-    id("org.graalvm.buildtools.native") version "0.9.28"
+    id("org.graalvm.buildtools.native") version "0.10.2"
   }
 }
 
 plugins {
-  id("com.gradle.enterprise") version "3.15.1"
-  id("com.gradle.common-custom-user-data-gradle-plugin") version "1.12"
-  id("org.gradle.toolchains.foojay-resolver-convention") version "0.7.0"
+  id("com.gradle.enterprise") version "3.18"
+  id("com.gradle.common-custom-user-data-gradle-plugin") version "2.0.2"
+  id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
   // this can't live in pluginManagement currently due to
   // https://github.com/bmuschko/gradle-docker-plugin/issues/1123
   // in particular, these commands are failing (reproducible locally):
   // ./gradlew :smoke-tests:images:servlet:buildLinuxTestImages pushMatrix -PsmokeTestServer=jetty
   // ./gradlew :smoke-tests:images:servlet:buildWindowsTestImages pushMatrix -PsmokeTestServer=jetty
-  id("com.bmuschko.docker-remote-api") version "9.3.7" apply false
+  id("com.bmuschko.docker-remote-api") version "9.4.0" apply false
 }
 
 dependencyResolutionManagement {
@@ -48,6 +48,12 @@ if (useScansGradleCom) {
       capture {
         isTaskInputFiles = true
       }
+
+      buildScanPublished {
+        File("build-scan.txt").printWriter().use { writer ->
+          writer.println(buildScanUri)
+        }
+      }
     }
   }
 } else {
@@ -69,19 +75,18 @@ if (useScansGradleCom) {
       gradle.startParameter.projectProperties["smokeTestSuite"]?.let {
         value("Smoke test suite", it)
       }
+
+      buildScanPublished {
+        File("build-scan.txt").printWriter().use { writer ->
+          writer.println(buildScanUri)
+        }
+      }
     }
   }
-}
 
-val geCacheUsername = System.getenv("GE_CACHE_USERNAME") ?: ""
-val geCachePassword = System.getenv("GE_CACHE_PASSWORD") ?: ""
-buildCache {
-  remote<HttpBuildCache> {
-    url = uri("$gradleEnterpriseServer/cache/")
-    isPush = isCI && geCacheUsername.isNotEmpty()
-    credentials {
-      username = geCacheUsername
-      password = geCachePassword
+  buildCache {
+    remote(gradleEnterprise.buildCache) {
+      isPush = isCI && geAccessKey.isNotEmpty()
     }
   }
 }
@@ -187,9 +192,12 @@ include(":instrumentation:cassandra:cassandra-4.4:library")
 include(":instrumentation:cassandra:cassandra-4.4:testing")
 include(":instrumentation:cassandra:cassandra-4-common:testing")
 include(":instrumentation:cdi-testing")
-include(":instrumentation:graphql-java-12.0:javaagent")
-include(":instrumentation:graphql-java-12.0:library")
-include(":instrumentation:graphql-java-12.0:testing")
+include(":instrumentation:graphql-java:graphql-java-12.0:javaagent")
+include(":instrumentation:graphql-java:graphql-java-12.0:library")
+include(":instrumentation:graphql-java:graphql-java-20.0:javaagent")
+include(":instrumentation:graphql-java:graphql-java-20.0:library")
+include(":instrumentation:graphql-java:graphql-java-common:library")
+include(":instrumentation:graphql-java:graphql-java-common:testing")
 include(":instrumentation:internal:internal-application-logger:bootstrap")
 include(":instrumentation:internal:internal-application-logger:javaagent")
 include(":instrumentation:internal:internal-class-loader:javaagent")
@@ -403,6 +411,8 @@ include(":instrumentation:opentelemetry-api:opentelemetry-api-1.15:javaagent")
 include(":instrumentation:opentelemetry-api:opentelemetry-api-1.27:javaagent")
 include(":instrumentation:opentelemetry-api:opentelemetry-api-1.31:javaagent")
 include(":instrumentation:opentelemetry-api:opentelemetry-api-1.32:javaagent")
+include(":instrumentation:opentelemetry-api:opentelemetry-api-1.37:javaagent")
+include(":instrumentation:opentelemetry-api:opentelemetry-api-1.38:javaagent")
 include(":instrumentation:opentelemetry-extension-annotations-1.0:javaagent")
 include(":instrumentation:opentelemetry-extension-kotlin-1.0:javaagent")
 include(":instrumentation:opentelemetry-instrumentation-annotations-1.16:javaagent")
@@ -536,7 +546,6 @@ include(":instrumentation:spring:spring-webflux:spring-webflux-5.3:library")
 include(":instrumentation:spring:spring-ws-2.0:javaagent")
 include(":instrumentation:spring:spring-boot-autoconfigure")
 include(":instrumentation:spring:starters:spring-boot-starter")
-include(":instrumentation:spring:starters:jaeger-spring-boot-starter")
 include(":instrumentation:spring:starters:zipkin-spring-boot-starter")
 include(":instrumentation:spymemcached-2.12:javaagent")
 include(":instrumentation:struts-2.3:javaagent")
@@ -562,7 +571,10 @@ include(":instrumentation:vertx:vertx-web-3.0:testing")
 include(":instrumentation:vibur-dbcp-11.0:javaagent")
 include(":instrumentation:vibur-dbcp-11.0:library")
 include(":instrumentation:vibur-dbcp-11.0:testing")
+include(":instrumentation:wicket-8.0:common-testing")
 include(":instrumentation:wicket-8.0:javaagent")
+include(":instrumentation:wicket-8.0:wicket8-testing")
+include(":instrumentation:wicket-8.0:wicket10-testing")
 include(":instrumentation:zio:zio-2.0:javaagent")
 
 // benchmark
