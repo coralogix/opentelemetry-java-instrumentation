@@ -11,7 +11,7 @@ import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Triggers;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.AwsLambdaEventsInstrumenterFactory;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.ApiGatewayHttpTrigger;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.ApiGatewayRestTrigger;
-import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.DynamoDBTrigger;
+import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.DynamoDbTrigger;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.S3Trigger;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.SqsTrigger;
 import io.opentelemetry.javaagent.bootstrap.internal.CommonConfig;
@@ -25,7 +25,7 @@ public final class AwsLambdaInstrumentationHelper {
             new ApiGatewayHttpTrigger(),
             new S3Trigger(),
             new SqsTrigger(),
-            new DynamoDBTrigger(),
+            new DynamoDbTrigger(),
           },
           GlobalOpenTelemetry.get());
 
