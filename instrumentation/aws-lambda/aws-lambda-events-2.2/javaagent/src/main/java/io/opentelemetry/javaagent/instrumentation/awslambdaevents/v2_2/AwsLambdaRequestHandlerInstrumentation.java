@@ -13,13 +13,16 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import com.amazonaws.services.lambda.runtime.Context;
+import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
+import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.MapUtils;
 import io.opentelemetry.javaagent.bootstrap.OpenTelemetrySdkAccess;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;
 import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.type.TypeDescription;
@@ -61,8 +64,14 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
         @Advice.Local("otelTriggerContext") io.opentelemetry.context.Context triggerContext,
         @Advice.Local("otelTriggerScope") Scope triggerScope,
         @Advice.Local("otelFunctionContext") io.opentelemetry.context.Context functionContext,
-        @Advice.Local("otelFunctionScope") Scope functionScope) {
-      input = AwsLambdaRequest.create(context, arg, Collections.emptyMap());
+        @Advice.Local("otelFunctionScope") Scope functionScope,
+        @Advice.Local("otelMessageContext") io.opentelemetry.context.Context unusedMessageContext,
+        @Advice.Local("otelMessageScope") Scope unusedMessageScope) {
+      Map<String, String> headers = Collections.emptyMap();
+      if (arg instanceof APIGatewayProxyRequestEvent) {
+        headers = MapUtils.lowercaseMap(((APIGatewayProxyRequestEvent) arg).getHeaders());
+      }
+      input = AwsLambdaRequest.create(context, arg, headers);
       io.opentelemetry.context.Context upstreamContext =
           AwsLambdaInstrumentationHelper.functionInstrumenter().extract(input);
 
@@ -96,7 +105,7 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
     public static void stopSpan(
         @Advice.Argument(value = 0, typing = Typing.DYNAMIC) Object arg,
-        @Advice.Return(typing = Typing.DYNAMIC) Object response,
+        @Advice.Return Object result,
         @Advice.Thrown Throwable throwable,
         @Advice.Local("otelInput") AwsLambdaRequest input,
         @Advice.Local("otelTriggerInstrumentation") Instrumenter<AwsLambdaRequest, Object> triggerInstrumentation,
@@ -108,13 +117,12 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
       if (functionScope != null) {
         functionScope.close();
         AwsLambdaInstrumentationHelper.functionInstrumenter()
-            .end(functionContext, input, null, throwable);
+            .end(functionContext, input, result, throwable);
       }
 
       if (triggerScope != null) {
         triggerScope.close();
-        triggerInstrumentation
-            .end(triggerContext, input, response, throwable);
+        triggerInstrumentation.end(triggerContext, input, result, throwable);
       }
 
       OpenTelemetrySdkAccess.forceFlush(1, TimeUnit.SECONDS);

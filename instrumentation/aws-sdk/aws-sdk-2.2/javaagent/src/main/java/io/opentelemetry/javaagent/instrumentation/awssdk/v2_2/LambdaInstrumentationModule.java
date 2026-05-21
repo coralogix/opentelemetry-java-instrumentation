@@ -8,7 +8,7 @@ package io.opentelemetry.javaagent.instrumentation.awssdk.v2_2;
 import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;
 import static net.bytebuddy.matcher.ElementMatchers.none;
 import com.google.auto.service.AutoService;
-import io.opentelemetry.instrumentation.awssdk.v2_2.LambdaAdviceBridge;
+import io.opentelemetry.instrumentation.awssdk.v2_2.internal.LambdaAdviceBridge;
 import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;
 import net.bytebuddy.asm.Advice;

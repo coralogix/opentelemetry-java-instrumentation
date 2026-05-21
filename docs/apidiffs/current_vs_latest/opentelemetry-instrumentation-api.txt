@@ -1,2 +1,26 @@
-Comparing source compatibility of opentelemetry-instrumentation-api-2.8.0.jar against opentelemetry-instrumentation-api-2.7.0.jar
-No changes.
+Comparing source compatibility of opentelemetry-instrumentation-api-2.9.0-cx-SNAPSHOT.jar against opentelemetry-instrumentation-api-2.28.1.jar
+***! MODIFIED CLASS: PUBLIC FINAL io.opentelemetry.instrumentation.api.semconv.http.HttpClientAttributesExtractorBuilder  (not serializable)
+	===  CLASS FILE FORMAT VERSION: 52.0 <- 52.0
+	GENERIC TEMPLATES: === REQUEST:java.lang.Object, === RESPONSE:java.lang.Object
+	---! REMOVED METHOD: PUBLIC(-) io.opentelemetry.instrumentation.api.semconv.http.HttpClientAttributesExtractorBuilder<REQUEST,RESPONSE> setCapturedRequestHeaders(java.util.Collection<java.lang.String>)
+	---! REMOVED METHOD: PUBLIC(-) io.opentelemetry.instrumentation.api.semconv.http.HttpClientAttributesExtractorBuilder<REQUEST,RESPONSE> setCapturedResponseHeaders(java.util.Collection<java.lang.String>)
+	---! REMOVED METHOD: PUBLIC(-) io.opentelemetry.instrumentation.api.semconv.http.HttpClientAttributesExtractorBuilder<REQUEST,RESPONSE> setKnownMethods(java.util.Collection<java.lang.String>)
+***! MODIFIED CLASS: PUBLIC FINAL io.opentelemetry.instrumentation.api.semconv.http.HttpServerAttributesExtractorBuilder  (not serializable)
+	===  CLASS FILE FORMAT VERSION: 52.0 <- 52.0
+	GENERIC TEMPLATES: === REQUEST:java.lang.Object, === RESPONSE:java.lang.Object
+	---! REMOVED METHOD: PUBLIC(-) io.opentelemetry.instrumentation.api.semconv.http.HttpServerAttributesExtractorBuilder<REQUEST,RESPONSE> setCapturedRequestHeaders(java.util.Collection<java.lang.String>)
+	---! REMOVED METHOD: PUBLIC(-) io.opentelemetry.instrumentation.api.semconv.http.HttpServerAttributesExtractorBuilder<REQUEST,RESPONSE> setCapturedResponseHeaders(java.util.Collection<java.lang.String>)
+	---! REMOVED METHOD: PUBLIC(-) io.opentelemetry.instrumentation.api.semconv.http.HttpServerAttributesExtractorBuilder<REQUEST,RESPONSE> setKnownMethods(java.util.Collection<java.lang.String>)
+***! MODIFIED CLASS: PUBLIC FINAL io.opentelemetry.instrumentation.api.semconv.http.HttpServerRouteBuilder  (not serializable)
+	===  CLASS FILE FORMAT VERSION: 52.0 <- 52.0
+	GENERIC TEMPLATES: === REQUEST:java.lang.Object
+	---! REMOVED METHOD: PUBLIC(-) io.opentelemetry.instrumentation.api.semconv.http.HttpServerRouteBuilder<REQUEST> setKnownMethods(java.util.Collection<java.lang.String>)
+***! MODIFIED CLASS: PUBLIC FINAL io.opentelemetry.instrumentation.api.semconv.http.HttpSpanNameExtractorBuilder  (not serializable)
+	===  CLASS FILE FORMAT VERSION: 52.0 <- 52.0
+	GENERIC TEMPLATES: === REQUEST:java.lang.Object
+	---! REMOVED METHOD: PUBLIC(-) io.opentelemetry.instrumentation.api.semconv.http.HttpSpanNameExtractorBuilder<REQUEST> setKnownMethods(java.util.Collection<java.lang.String>)
+---! REMOVED CLASS: PUBLIC(-) FINAL(-) io.opentelemetry.instrumentation.api.semconv.util.SpanNames  (not serializable)
+	---  CLASS FILE FORMAT VERSION: n.a. <- 52.0
+	---! REMOVED SUPERCLASS: java.lang.Object
+	---! REMOVED METHOD: PUBLIC(-) STATIC(-) java.lang.String fromMethod(java.lang.reflect.Method)
+	---! REMOVED METHOD: PUBLIC(-) STATIC(-) java.lang.String fromMethod(java.lang.Class<?>, java.lang.String)

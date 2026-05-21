@@ -4,10 +4,11 @@ pluginManagement {
     id("com.google.cloud.tools.jib") version "3.4.3"
     id("com.gradle.plugin-publish") version "1.3.0"
     id("io.github.gradle-nexus.publish-plugin") version "2.0.0"
-    id("org.jetbrains.kotlin.jvm") version "2.0.20"
+    id("org.jetbrains.kotlin.jvm") version "2.0.21"
     id("org.xbib.gradle.plugin.jflex") version "3.0.2"
     id("org.unbroken-dome.xjc") version "2.0.0"
-    id("org.graalvm.buildtools.native") version "0.10.3"
+    // See https://github.com/graalvm/native-build-tools/issues/626
+    id("org.graalvm.buildtools.native") version "0.10.2"
   }
 }
 
@@ -65,9 +66,11 @@ if (useScansGradleCom) {
         fileFingerprints = true
       }
 
-      buildScanPublished {
-        File("build-scan.txt").printWriter().use { writer ->
-          writer.println(buildScanUri)
+      if (!gradle.startParameter.taskNames.contains("listTestsInPartition")) {
+        buildScanPublished {
+          File("build-scan.txt").printWriter().use { writer ->
+            writer.println(buildScanUri)
+          }
         }
       }
     }
@@ -89,9 +92,11 @@ if (useScansGradleCom) {
         value("Smoke test suite", it)
       }
 
-      buildScanPublished {
-        File("build-scan.txt").printWriter().use { writer ->
-          writer.println(buildScanUri)
+      if (!gradle.startParameter.taskNames.contains("listTestsInPartition")) {
+        buildScanPublished {
+          File("build-scan.txt").printWriter().use { writer ->
+            writer.println(buildScanUri)
+          }
         }
       }
     }
@@ -250,6 +255,7 @@ include(":instrumentation:elasticsearch:elasticsearch-rest-common:library")
 include(":instrumentation:elasticsearch:elasticsearch-transport-5.0:javaagent")
 include(":instrumentation:elasticsearch:elasticsearch-transport-5.3:javaagent")
 include(":instrumentation:elasticsearch:elasticsearch-transport-6.0:javaagent")
+include(":instrumentation:elasticsearch:elasticsearch-transport-6.0:testing")
 include(":instrumentation:elasticsearch:elasticsearch-transport-common:javaagent")
 include(":instrumentation:elasticsearch:elasticsearch-transport-common:testing")
 include(":instrumentation:executors:bootstrap")
@@ -457,6 +463,7 @@ include(":instrumentation:opentelemetry-api:opentelemetry-api-1.31:javaagent")
 include(":instrumentation:opentelemetry-api:opentelemetry-api-1.32:javaagent")
 include(":instrumentation:opentelemetry-api:opentelemetry-api-1.37:javaagent")
 include(":instrumentation:opentelemetry-api:opentelemetry-api-1.38:javaagent")
+include(":instrumentation:opentelemetry-api:opentelemetry-api-1.40:javaagent")
 include(":instrumentation:opentelemetry-api:opentelemetry-api-1.42:javaagent")
 include(":instrumentation:opentelemetry-extension-annotations-1.0:javaagent")
 include(":instrumentation:opentelemetry-extension-kotlin-1.0:javaagent")
@@ -544,6 +551,7 @@ include(":instrumentation:scala-fork-join-2.8:javaagent")
 include(":instrumentation:servlet:servlet-2.2:javaagent")
 include(":instrumentation:servlet:servlet-3.0:javaagent")
 include(":instrumentation:servlet:servlet-3.0:javaagent-unit-tests")
+include(":instrumentation:servlet:servlet-3.0:testing")
 include(":instrumentation:servlet:servlet-5.0:javaagent")
 include(":instrumentation:servlet:servlet-5.0:javaagent-unit-tests")
 include(":instrumentation:servlet:servlet-5.0:jetty12-testing")
@@ -557,6 +565,7 @@ include(":instrumentation:spring:spring-boot-actuator-autoconfigure-2.0:javaagen
 include(":instrumentation:spring:spring-boot-autoconfigure")
 include(":instrumentation:spring:spring-boot-resources:javaagent")
 include(":instrumentation:spring:spring-boot-resources:javaagent-unit-tests")
+include(":instrumentation:spring:spring-cloud-aws-3.0:javaagent")
 include(":instrumentation:spring:spring-cloud-gateway:spring-cloud-gateway-2.0:javaagent")
 include(":instrumentation:spring:spring-cloud-gateway:spring-cloud-gateway-2.2:testing")
 include(":instrumentation:spring:spring-cloud-gateway:spring-cloud-gateway-common:testing")
