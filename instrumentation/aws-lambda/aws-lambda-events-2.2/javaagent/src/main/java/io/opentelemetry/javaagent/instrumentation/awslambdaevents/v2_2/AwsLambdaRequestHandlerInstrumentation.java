@@ -7,7 +7,7 @@ package io.opentelemetry.javaagent.instrumentation.awslambdaevents.v2_2;
 
 import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;
 import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.implementsInterface;
-import static io.opentelemetry.javaagent.instrumentation.awslambdaevents.v2_2.AwsLambdaInstrumentationHelper.flushTimeout;
+import static io.opentelemetry.javaagent.instrumentation.awslambdaevents.v2_2.AwsLambdaSingletons.flushTimeout;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -74,15 +74,13 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
       }
       input = AwsLambdaRequest.create(context, arg, headers);
       io.opentelemetry.context.Context upstreamContext =
-          AwsLambdaInstrumentationHelper.functionInstrumenter().extract(input);
+          AwsLambdaSingletons.functionInstrumenter().extract(input);
 
-      if (!AwsLambdaInstrumentationHelper.functionInstrumenter()
-          .shouldStart(upstreamContext, input)) {
+      if (!AwsLambdaSingletons.functionInstrumenter().shouldStart(upstreamContext, input)) {
         return;
       }
 
-      triggerInstrumentation = AwsLambdaInstrumentationHelper.getTriggers()
-          .getInstrumenterForRequest(input);
+      triggerInstrumentation = AwsLambdaSingletons.getTriggers().getInstrumenterForRequest(input);
 
       if (triggerInstrumentation != null) {
         triggerContext = triggerInstrumentation.start(upstreamContext, input);
@@ -91,7 +89,7 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
       io.opentelemetry.context.Context parentForFunctionContext =
           triggerContext != null ? triggerContext : upstreamContext;
       functionContext =
-          AwsLambdaInstrumentationHelper.functionInstrumenter().start(parentForFunctionContext, input);
+          AwsLambdaSingletons.functionInstrumenter().start(parentForFunctionContext, input);
 
       OpenTelemetrySdkAccess.sendEarlySpans(upstreamContext, triggerContext, functionContext);
 
@@ -117,8 +115,7 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
 
       if (functionScope != null) {
         functionScope.close();
-        AwsLambdaInstrumentationHelper.functionInstrumenter()
-            .end(functionContext, input, result, throwable);
+        AwsLambdaSingletons.functionInstrumenter().end(functionContext, input, result, throwable);
       }
 
       if (triggerScope != null) {

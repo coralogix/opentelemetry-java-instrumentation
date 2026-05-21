@@ -5,9 +5,14 @@
 
 package io.opentelemetry.javaagent.tooling;
 
+import io.opentelemetry.api.incubator.config.ConfigProvider;
 import io.opentelemetry.javaagent.bootstrap.OpenTelemetrySdkAccess;
+import io.opentelemetry.javaagent.extension.internal.DeclarativeConfigPropertiesBridgeBuilder;
+import io.opentelemetry.javaagent.tooling.config.EarlyInitAgentConfig;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk;
+import io.opentelemetry.sdk.autoconfigure.SdkAutoconfigureAccess;
+import io.opentelemetry.sdk.autoconfigure.internal.AutoConfigureUtil;
 import io.opentelemetry.sdk.common.CompletableResultCode;
 import java.util.Arrays;
 
@@ -18,17 +23,40 @@ public final class OpenTelemetryInstaller {
    * AutoConfiguredOpenTelemetrySdk}.
    *
    * @return the {@link AutoConfiguredOpenTelemetrySdk}
-   */
+  */
   public static AutoConfiguredOpenTelemetrySdk installOpenTelemetrySdk(
-      ClassLoader extensionClassLoader) {
+      ClassLoader extensionClassLoader, EarlyInitAgentConfig earlyConfig) {
 
     AutoConfiguredOpenTelemetrySdk autoConfiguredSdk =
         AutoConfiguredOpenTelemetrySdk.builder()
             .setResultAsGlobal()
             .setServiceClassLoader(extensionClassLoader)
             .build();
+    ConfigProvider configProvider = AutoConfigureUtil.getConfigProvider(autoConfiguredSdk);
     OpenTelemetrySdk sdk = autoConfiguredSdk.getOpenTelemetrySdk();
 
+    setForceFlush(sdk);
+
+    OpenTelemetrySdkAccess.internalSetEarlySpans(new SdkEarlySpans(sdk));
+
+    if (configProvider != null) {
+      return SdkAutoconfigureAccess.create(
+          sdk,
+          SdkAutoconfigureAccess.getResource(autoConfiguredSdk),
+          new DeclarativeConfigPropertiesBridgeBuilder()
+              .addMapping("otel.javaagent", "agent")
+              .addOverride(
+                  "otel.javaagent.debug", earlyConfig.getBoolean("otel.javaagent.debug", false))
+              .addOverride(
+                  "otel.javaagent.logging", earlyConfig.getString("otel.javaagent.logging"))
+              .buildFromInstrumentationConfig(configProvider.getInstrumentationConfig()),
+          configProvider);
+    }
+
+    return autoConfiguredSdk;
+  }
+
+  private static void setForceFlush(OpenTelemetrySdk sdk) {
     OpenTelemetrySdkAccess.internalSetForceFlush(
         (timeout, unit) -> {
           CompletableResultCode traceResult = sdk.getSdkTracerProvider().forceFlush();
@@ -37,10 +65,6 @@ public final class OpenTelemetryInstaller {
           CompletableResultCode.ofAll(Arrays.asList(traceResult, metricsResult, logsResult))
               .join(timeout, unit);
         });
-
-    OpenTelemetrySdkAccess.internalSetEarlySpans(new SdkEarlySpans(sdk));
-
-    return autoConfiguredSdk;
   }
 
   private OpenTelemetryInstaller() {}
