@@ -10,7 +10,7 @@ import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.AwsLambdaFun
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Trigger;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Triggers;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.WrapperConfiguration;
-import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.AwsLambdaEventsInstrumenterFactory;
+import io.opentelemetry.instrumentation.awslambdaevents.common.v2_2.internal.AwsLambdaEventsInstrumenterFactory;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.ApiGatewayHttpTrigger;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.ApiGatewayRestTrigger;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.DynamoDBTrigger;
@@ -21,7 +21,7 @@ import io.opentelemetry.javaagent.bootstrap.internal.AgentInstrumentationConfig;
 import java.time.Duration;
 
 public final class AwsLambdaSingletons {
-
+  private static final String INSTRUMENTATION_NAME = "io.opentelemetry.aws-lambda-events-2.2";
   private static final Triggers TRIGGERS =
       new Triggers(
           new Trigger[] {
@@ -32,11 +32,11 @@ public final class AwsLambdaSingletons {
             new DynamoDBTrigger(),
           },
           GlobalOpenTelemetry.get());
-
   private static final AwsLambdaFunctionInstrumenter FUNCTION_INSTRUMENTER =
       AwsLambdaEventsInstrumenterFactory.createInstrumenter(
-          GlobalOpenTelemetry.get(), AgentCommonConfig.get().getKnownHttpRequestMethods());
-
+          GlobalOpenTelemetry.get(),
+          INSTRUMENTATION_NAME,
+          AgentCommonConfig.get().getKnownHttpRequestMethods());
   private static final Duration FLUSH_TIMEOUT =
       Duration.ofMillis(
           AgentInstrumentationConfig.get()
