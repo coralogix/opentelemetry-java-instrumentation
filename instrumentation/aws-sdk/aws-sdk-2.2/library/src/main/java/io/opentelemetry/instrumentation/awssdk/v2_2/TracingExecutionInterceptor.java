@@ -19,7 +19,8 @@ import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.api.internal.InstrumenterUtil;
 import io.opentelemetry.instrumentation.api.internal.Timer;
 import io.opentelemetry.instrumentation.api.internal.ConfigPropertiesUtil;
-import io.opentelemetry.semconv.SemanticAttributes;
+import io.opentelemetry.semconv.HttpAttributes;
+import io.opentelemetry.semconv.incubating.DbIncubatingAttributes;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -357,10 +358,10 @@ final class TracingExecutionInterceptor implements ExecutionInterceptor {
     fieldMapper.mapToAttributes(sdkRequest, awsSdkRequest, span);
 
     if (awsSdkRequest.type() == DYNAMODB) {
-      span.setAttribute(SemanticAttributes.DB_SYSTEM, "dynamodb");
+      span.setAttribute(DbIncubatingAttributes.DB_SYSTEM, "dynamodb");
       String operation = attributes.getAttribute(SdkExecutionAttribute.OPERATION_NAME);
       if (operation != null) {
-        span.setAttribute(SemanticAttributes.DB_OPERATION, operation);
+        span.setAttribute(DbIncubatingAttributes.DB_OPERATION, operation);
       }
     }
   }
@@ -427,7 +428,7 @@ final class TracingExecutionInterceptor implements ExecutionInterceptor {
                   .collect(Collectors.joining("\n"));
           Attributes attributes =
               Attributes.of(
-                  SemanticAttributes.HTTP_RESPONSE_STATUS_CODE,
+                  HttpAttributes.HTTP_RESPONSE_STATUS_CODE,
                   Long.valueOf(errorCode),
                   HTTP_ERROR_MSG,
                   errorMsg);

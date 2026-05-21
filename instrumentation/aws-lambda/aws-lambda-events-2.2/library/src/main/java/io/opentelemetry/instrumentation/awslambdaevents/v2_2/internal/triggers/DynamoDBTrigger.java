@@ -9,7 +9,7 @@ import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Trigg
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.RPC_REQUEST_PAYLOAD;
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.limitedPayload;
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.logException;
-import static io.opentelemetry.semconv.SemanticAttributes.FAAS_TRIGGER;
+import static io.opentelemetry.semconv.incubating.FaasIncubatingAttributes.FAAS_TRIGGER;
 
 import com.amazonaws.services.lambda.runtime.events.DynamodbEvent;
 import com.amazonaws.services.lambda.runtime.events.DynamodbEvent.DynamodbStreamRecord;
@@ -23,7 +23,7 @@ import io.opentelemetry.instrumentation.api.instrumenter.SpanStatusBuilder;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Trigger;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerMismatchException;
-import io.opentelemetry.semconv.SemanticAttributes;
+import io.opentelemetry.semconv.incubating.FaasIncubatingAttributes;
 import java.util.List;
 import javax.annotation.Nullable;
 
@@ -77,7 +77,7 @@ public final class DynamoDBTrigger extends Trigger {
 
       DynamodbEvent event = requireCorrectEventType(request);
 
-      attributes.put(FAAS_TRIGGER, SemanticAttributes.FaasTriggerValues.DATASOURCE);
+      attributes.put(FAAS_TRIGGER, FaasIncubatingAttributes.FaasTriggerValues.DATASOURCE);
       attributes.put(FAAS_TRIGGER_TYPE, "DynamoDB");
       List<DynamodbStreamRecord> records = event.getRecords();
       // With DynamoDB trigger we always expect the list to contain exactly one record

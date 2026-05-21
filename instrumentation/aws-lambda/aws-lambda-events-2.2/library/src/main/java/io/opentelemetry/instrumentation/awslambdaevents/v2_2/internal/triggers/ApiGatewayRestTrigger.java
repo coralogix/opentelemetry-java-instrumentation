@@ -7,7 +7,7 @@ import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Trigg
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.HTTP_RESPONSE_BODY;
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.limitedPayload;
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.logException;
-import static io.opentelemetry.semconv.SemanticAttributes.FAAS_TRIGGER;
+import static io.opentelemetry.semconv.incubating.FaasIncubatingAttributes.FAAS_TRIGGER;
 
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent.ProxyRequestContext;
@@ -22,7 +22,7 @@ import io.opentelemetry.instrumentation.api.instrumenter.SpanStatusBuilder;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Trigger;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerMismatchException;
-import io.opentelemetry.semconv.SemanticAttributes;
+import io.opentelemetry.semconv.incubating.FaasIncubatingAttributes;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -89,7 +89,7 @@ public final class ApiGatewayRestTrigger extends Trigger {
       RequestIdentity identity = requestContext.getIdentity();
       Map<String, String> headers = lowercaseMap(req.getHeaders());
 
-      attributes.put(FAAS_TRIGGER, SemanticAttributes.FaasTriggerValues.HTTP);
+      attributes.put(FAAS_TRIGGER, FaasIncubatingAttributes.FaasTriggerValues.HTTP);
       attributes.put(FAAS_TRIGGER_TYPE, "Api Gateway Rest");
       attributes.put(HTTP_METHOD, requestContext.getHttpMethod());
       attributes.put(HTTP_ROUTE, requestContext.getResourcePath());

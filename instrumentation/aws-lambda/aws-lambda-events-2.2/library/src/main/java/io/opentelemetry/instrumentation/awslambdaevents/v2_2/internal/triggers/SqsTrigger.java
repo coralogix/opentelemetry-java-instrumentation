@@ -16,7 +16,8 @@ import io.opentelemetry.instrumentation.api.instrumenter.SpanStatusBuilder;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Trigger;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerMismatchException;
-import io.opentelemetry.semconv.SemanticAttributes;
+import io.opentelemetry.semconv.incubating.FaasIncubatingAttributes;
+import io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -28,7 +29,7 @@ import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Trigg
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.RPC_REQUEST_PAYLOAD;
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.limitedPayload;
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.logException;
-import static io.opentelemetry.semconv.SemanticAttributes.FAAS_TRIGGER;
+import static io.opentelemetry.semconv.incubating.FaasIncubatingAttributes.FAAS_TRIGGER;
 
 /**
  * This class is internal and is hence not for public use. Its APIs are unstable and can change at
@@ -111,14 +112,14 @@ public final class SqsTrigger extends Trigger {
     try {
       SQSEvent event = requireCorrectEventType(request);
 
-      attributes.put(FAAS_TRIGGER, SemanticAttributes.FaasTriggerValues.PUBSUB);
+      attributes.put(FAAS_TRIGGER, FaasIncubatingAttributes.FaasTriggerValues.PUBSUB);
       attributes.put(FAAS_TRIGGER_TYPE, "SQS");
-      attributes.put(SemanticAttributes.MESSAGING_SYSTEM, "AmazonSQS");
-      attributes.put(SemanticAttributes.MESSAGING_OPERATION, "deliver");
+      attributes.put(MessagingIncubatingAttributes.MESSAGING_SYSTEM, "AmazonSQS");
+      attributes.put(MessagingIncubatingAttributes.MESSAGING_OPERATION, "deliver");
 
       Optional<String> destination = commonDestination(event);
       if (destination.isPresent()) {
-        attributes.put(SemanticAttributes.MESSAGING_DESTINATION_NAME, destination.get());
+        attributes.put(MessagingIncubatingAttributes.MESSAGING_DESTINATION_NAME, destination.get());
       }
 
       List<SQSMessage> messages = event.getRecords();

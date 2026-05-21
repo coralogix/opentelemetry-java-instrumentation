@@ -61,7 +61,7 @@ If you are looking for documentation on using those.
 ## Getting Started
 
 Download
-the [latest version](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.2.0/opentelemetry-javaagent.jar).
+the [latest version](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.3.0/opentelemetry-javaagent.jar).
 
 This package includes the instrumentation agent as well as
 instrumentations for all supported libraries and all available data exporters.
@@ -169,7 +169,7 @@ Maintainers ([@open-telemetry/java-instrumentation-maintainers](https://github.c
 Emeritus maintainers:
 
 - [Mateusz Rzeszutek](https://github.com/mateuszrzeszutek)
-- [Nikita Salnikov-Tarnovski](https://github.com/iNikem), Splunk
+- [Nikita Salnikov-Tarnovski](https://github.com/iNikem)
 - [Tyler Benson](https://github.com/tylerbenson)
 
 Learn more about roles in
