@@ -2,8 +2,6 @@ package io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers;
 
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotification.S3EventNotificationRecord;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.trace.StatusCode;
@@ -13,8 +11,9 @@ import io.opentelemetry.instrumentation.api.instrumenter.SpanStatusBuilder;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Trigger;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerMismatchException;
-import javax.annotation.Nullable;
+import io.opentelemetry.instrumentation.awslambdaevents.common.v2_2.internal.SerializationUtil;
 import java.util.List;
+import javax.annotation.Nullable;
 
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.FAAS_TRIGGER_TYPE;
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.RPC_REQUEST_PAYLOAD;
@@ -58,8 +57,6 @@ public final class S3Trigger extends Trigger {
       AwsLambdaRequest request) {
 
     try {
-      ObjectMapper objectMapper = new ObjectMapper();
-
       S3Event event = requireCorrectEventType(request);
 
       attributes.put(FAAS_TRIGGER, "datasource");
@@ -70,9 +67,9 @@ public final class S3Trigger extends Trigger {
         S3EventNotificationRecord record = records.get(0);
         // TODO python uses different attribute name. node.js doesn't provide payload at all, but it provides extra attributes.
         attributes.put(RPC_REQUEST_PAYLOAD,
-            limitedPayload(objectMapper.writeValueAsString(record)));
+            limitedPayload(SerializationUtil.toJson(record)));
       }
-    } catch (RuntimeException | JsonProcessingException e) {
+    } catch (RuntimeException e) {
       logException(e, "S3Trigger.onStart instrumentation failed");
     }
   }
