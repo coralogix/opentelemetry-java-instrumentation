@@ -33,7 +33,7 @@ If you are looking for documentation on using those.
 ## Getting Started
 
 Download
-the [latest version](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.13.0/opentelemetry-javaagent.jar).
+the [latest version](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.14.0/opentelemetry-javaagent.jar).
 
 This package includes the instrumentation agent as well as
 instrumentations for all supported libraries and all available data exporters.
@@ -138,7 +138,7 @@ Triagers ([@open-telemetry/java-instrumentation-triagers](https://github.com/org
 
 Approvers ([@open-telemetry/java-instrumentation-approvers](https://github.com/orgs/open-telemetry/teams/java-instrumentation-approvers)):
 
-- [Gregor Zietlinger](https://github.com/zeitlinger), Grafana
+- [Gregor Zeitlinger](https://github.com/zeitlinger), Grafana
 - [Jack Berg](https://github.com/jack-berg), New Relic
 - [Jason Plumb](https://github.com/breedx-splk), Splunk
 - [Jay DeLuca](https://github.com/jaydeluca)
