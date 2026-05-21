@@ -8,6 +8,7 @@ package io.opentelemetry.smoketest;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;
 import io.opentelemetry.sdk.logs.data.LogRecordData;
 import io.opentelemetry.sdk.logs.export.LogRecordExporter;
 import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
@@ -36,8 +37,13 @@ import org.springframework.context.annotation.Configuration;
       OtelSpringStarterSmokeTest.TestConfiguration.class
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-    properties = {"otel.exporter.otlp.enabled=false", "otel.metric.export.interval=100"
+    properties = {
+      "otel.exporter.otlp.enabled=false",
+      "otel.metric.export.interval=100",
+      "otel.exporter.otlp.headers=a=1,b=2",
       // We set the export interval of the metrics to 100 ms. The default value is 1 minute.
+      // the headers are simply set here to make sure that headers can be parsed, even with
+      // otel.exporter.otlp.enabled=false
     })
 class OtelSpringStarterSmokeTest {
 
@@ -48,6 +54,8 @@ class OtelSpringStarterSmokeTest {
   public static final InMemorySpanExporter SPAN_EXPORTER = InMemorySpanExporter.create();
 
   @Autowired private TestRestTemplate testRestTemplate;
+
+  @Autowired private ConfigProperties configProperties;
 
   @Configuration(proxyBeanMethods = false)
   static class TestConfiguration {
@@ -68,6 +76,14 @@ class OtelSpringStarterSmokeTest {
   }
 
   @Test
+  void propertyConversion() {
+    assertThat(configProperties.getMap("otel.exporter.otlp.headers"))
+        .containsEntry("a", "1")
+        .containsEntry("b", "2");
+    assertThat(configProperties.getList("otel.propagators")).containsExactly("b3");
+  }
+
+  @Test
   void shouldSendTelemetry() throws InterruptedException {
 
     testRestTemplate.getForObject(OtelSpringStarterSmokeTestController.URL, String.class);
@@ -80,7 +96,6 @@ class OtelSpringStarterSmokeTest {
 
     // Span
     TracesAssert.assertThat(exportedSpans)
-        .hasSize(2)
         .hasTracesSatisfyingExactly(
             traceAssert ->
                 traceAssert.hasSpansSatisfyingExactly(
@@ -116,5 +131,9 @@ class OtelSpringStarterSmokeTest {
         .as("Should instrument logs")
         .startsWith("Starting ")
         .contains(this.getClass().getSimpleName());
+    assertThat(firstLog.getAttributes().asMap())
+        .as("Should capture code attributes")
+        .containsEntry(
+            SemanticAttributes.CODE_NAMESPACE, "org.springframework.boot.StartupInfoLogger");
   }
 }

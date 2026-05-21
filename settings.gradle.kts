@@ -7,12 +7,12 @@ pluginManagement {
     id("org.jetbrains.kotlin.jvm") version "1.9.22"
     id("org.xbib.gradle.plugin.jflex") version "3.0.2"
     id("org.unbroken-dome.xjc") version "2.0.0"
-    id("org.graalvm.buildtools.native") version "0.9.28"
+    id("org.graalvm.buildtools.native") version "0.10.0"
   }
 }
 
 plugins {
-  id("com.gradle.enterprise") version "3.16.1"
+  id("com.gradle.enterprise") version "3.16.2"
   id("com.gradle.common-custom-user-data-gradle-plugin") version "1.12.1"
   id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
   // this can't live in pluginManagement currently due to
@@ -156,6 +156,7 @@ include(":instrumentation:apache-httpclient:apache-httpclient-4.0:javaagent")
 include(":instrumentation:apache-httpclient:apache-httpclient-4.3:library")
 include(":instrumentation:apache-httpclient:apache-httpclient-4.3:testing")
 include(":instrumentation:apache-httpclient:apache-httpclient-5.0:javaagent")
+include(":instrumentation:apache-httpclient:apache-httpclient-5.2:library")
 include(":instrumentation:armeria-1.3:javaagent")
 include(":instrumentation:armeria-1.3:library")
 include(":instrumentation:armeria-1.3:testing")
@@ -239,6 +240,7 @@ include(":instrumentation:executors:javaagent")
 include(":instrumentation:executors:testing")
 include(":instrumentation:external-annotations:javaagent")
 include(":instrumentation:external-annotations:javaagent-unit-tests")
+include(":instrumentation:finagle-http-23.11:javaagent")
 include(":instrumentation:finatra-2.9:javaagent")
 include(":instrumentation:geode-1.4:javaagent")
 include(":instrumentation:google-http-client-1.19:javaagent")
@@ -384,6 +386,7 @@ include(":instrumentation:mongo:mongo-3.7:javaagent")
 include(":instrumentation:mongo:mongo-4.0:javaagent")
 include(":instrumentation:mongo:mongo-async-3.3:javaagent")
 include(":instrumentation:mongo:mongo-common:testing")
+include(":instrumentation:mybatis-3.2:javaagent")
 include(":instrumentation:netty:netty-3.8:javaagent")
 include(":instrumentation:netty:netty-4.0:javaagent")
 include(":instrumentation:netty:netty-4.1:javaagent")
@@ -539,7 +542,6 @@ include(":instrumentation:spring:spring-webflux:spring-webflux-5.3:library")
 include(":instrumentation:spring:spring-ws-2.0:javaagent")
 include(":instrumentation:spring:spring-boot-autoconfigure")
 include(":instrumentation:spring:starters:spring-boot-starter")
-include(":instrumentation:spring:starters:jaeger-spring-boot-starter")
 include(":instrumentation:spring:starters:zipkin-spring-boot-starter")
 include(":instrumentation:spymemcached-2.12:javaagent")
 include(":instrumentation:struts-2.3:javaagent")

@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
+@SuppressWarnings("deprecation") // test for deprecated code
 public class PropagationPropertiesTest {
 
   private final ApplicationContextRunner contextRunner =
@@ -30,7 +31,8 @@ public class PropagationPropertiesTest {
         .withPropertyValues("otel.propagation.type=xray,b3")
         .run(
             context -> {
-              PropagationProperties propertiesBean = context.getBean(PropagationProperties.class);
+              DeprecatedPropagationProperties propertiesBean =
+                  context.getBean(DeprecatedPropagationProperties.class);
 
               assertThat(propertiesBean.getType()).isEqualTo(Arrays.asList("xray", "b3"));
             });
@@ -42,7 +44,7 @@ public class PropagationPropertiesTest {
 
     this.contextRunner.run(
         context ->
-            assertThat(context.getBean(PropagationProperties.class).getType())
+            assertThat(context.getBean(DeprecatedPropagationProperties.class).getType())
                 .containsExactly("tracecontext", "baggage"));
   }
 }
