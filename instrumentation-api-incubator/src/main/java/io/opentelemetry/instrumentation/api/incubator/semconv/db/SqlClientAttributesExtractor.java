@@ -26,7 +26,7 @@ import java.util.Collection;
  */
 public final class SqlClientAttributesExtractor<REQUEST, RESPONSE>
     extends DbClientCommonAttributesExtractor<
-        REQUEST, RESPONSE, SqlClientAttributesGetter<REQUEST>> {
+        REQUEST, RESPONSE, SqlClientAttributesGetter<REQUEST, RESPONSE>> {
 
   // copied from DbIncubatingAttributes
   private static final AttributeKey<String> DB_OPERATION = AttributeKey.stringKey("db.operation");
@@ -41,7 +41,7 @@ public final class SqlClientAttributesExtractor<REQUEST, RESPONSE>
 
   /** Creates the SQL client attributes extractor with default configuration. */
   public static <REQUEST, RESPONSE> AttributesExtractor<REQUEST, RESPONSE> create(
-      SqlClientAttributesGetter<REQUEST> getter) {
+      SqlClientAttributesGetter<REQUEST, RESPONSE> getter) {
     return SqlClientAttributesExtractor.<REQUEST, RESPONSE>builder(getter).build();
   }
 
@@ -50,19 +50,17 @@ public final class SqlClientAttributesExtractor<REQUEST, RESPONSE>
    * client attributes extractor.
    */
   public static <REQUEST, RESPONSE> SqlClientAttributesExtractorBuilder<REQUEST, RESPONSE> builder(
-      SqlClientAttributesGetter<REQUEST> getter) {
+      SqlClientAttributesGetter<REQUEST, RESPONSE> getter) {
     return new SqlClientAttributesExtractorBuilder<>(getter);
   }
 
   private static final String SQL_CALL = "CALL";
-  // sanitizer is also used to extract operation and table name, so we have it always enabled here
-  private static final SqlStatementSanitizer sanitizer = SqlStatementSanitizer.create(true);
 
   private final AttributeKey<String> oldSemconvTableAttribute;
   private final boolean statementSanitizationEnabled;
 
   SqlClientAttributesExtractor(
-      SqlClientAttributesGetter<REQUEST> getter,
+      SqlClientAttributesGetter<REQUEST, RESPONSE> getter,
       AttributeKey<String> oldSemconvTableAttribute,
       boolean statementSanitizationEnabled) {
     super(getter);
@@ -83,7 +81,7 @@ public final class SqlClientAttributesExtractor<REQUEST, RESPONSE>
     if (SemconvStability.emitOldDatabaseSemconv()) {
       if (rawQueryTexts.size() == 1) { // for backcompat(?)
         String rawQueryText = rawQueryTexts.iterator().next();
-        SqlStatementInfo sanitizedStatement = sanitizer.sanitize(rawQueryText);
+        SqlStatementInfo sanitizedStatement = SqlStatementSanitizerUtil.sanitize(rawQueryText);
         String operation = sanitizedStatement.getOperation();
         internalSet(
             attributes,
@@ -104,7 +102,7 @@ public final class SqlClientAttributesExtractor<REQUEST, RESPONSE>
       }
       if (rawQueryTexts.size() == 1) {
         String rawQueryText = rawQueryTexts.iterator().next();
-        SqlStatementInfo sanitizedStatement = sanitizer.sanitize(rawQueryText);
+        SqlStatementInfo sanitizedStatement = SqlStatementSanitizerUtil.sanitize(rawQueryText);
         String operation = sanitizedStatement.getOperation();
         internalSet(
             attributes,
