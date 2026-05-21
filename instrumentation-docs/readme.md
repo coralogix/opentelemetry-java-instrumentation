@@ -4,14 +4,14 @@ Runs analysis on instrumentation modules in order to generate documentation.
 
 ## How to use
 
-Run the doc generator:
+Run the analysis to update the instrumentation-list.yaml:
 
-`./gradlew :instrumentation-docs:generateDocs`
+`./gradlew :instrumentation-docs:runAnalysis`
 
 ## Instrumentation Hierarchy
 
-An "InstrumentationEntity" represents a module that that targets specific code in a
-framework/library/technology. Each entity will have a name, a namespace, and a group.
+An "InstrumentationModule" represents a module that that targets specific code in a
+framework/library/technology. Each module will have a name, a namespace, and a group.
 
 Using these structures as examples:
 
@@ -67,6 +67,9 @@ public class SpringWebInstrumentationModule extends InstrumentationModule
   * List of supported versions by the module, broken down by `library` or `javaagent` support
 * scope
   * Name: The scope name of the instrumentation, `io.opentelemetry.{instrumentation name}`
+* configurations settings
+  * List of settings that are available for the instrumentation module
+  * Each setting has a name, description, type, and default value
 
 ## Methodology
 
@@ -81,6 +84,11 @@ As of now, the following fields are supported, all of which are optional:
 description: "Instruments..."   # Description of the instrumentation module
 disabled_by_default: true       # Defaults to `false`
 classification: internal        # instrumentation classification: library | internal | custom
+configurations:
+  - name: otel.instrumentation.common.db-statement-sanitizer.enabled
+    description: Enables statement sanitization for database queries.
+    type: boolean               # boolean | string | list | map
+    default: true
 ```
 
 ### Gradle File Derived Information

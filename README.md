@@ -33,18 +33,11 @@ If you are looking for documentation on using those.
 ## Getting Started
 
 Download
-the [latest version](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.15.0/opentelemetry-javaagent.jar).
+the [latest version](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.16.0/opentelemetry-javaagent.jar).
 
 This package includes the instrumentation agent as well as
 instrumentations for all supported libraries and all available data exporters.
 The package provides a completely automatic, out-of-the-box experience.
-
-*Note: There are 2.x releases and 1.x releases. The 2.0 release included significant breaking
-changes, the details of which can be found in the [release notes](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/tag/v2.0.0).
-It is recommended to use the latest 2.x release which will have the latest features and improvements.
-1.x will receive security patches for a limited time and will not include other bug fixes and
-enhancements.*
-
 
 Enable the instrumentation agent using the `-javaagent` flag to the JVM.
 
@@ -162,7 +155,7 @@ Emeritus maintainers:
 Learn more about roles in
 the [community repository](https://github.com/open-telemetry/community/blob/main/guides/contributor/membership.md).
 
-Thanks to all the people who already contributed!
+Thanks to all the people who have already contributed!
 
 <a href="https://github.com/open-telemetry/opentelemetry-java-instrumentation/graphs/contributors">
   <img src="https://contributors-img.web.app/image?repo=open-telemetry/opentelemetry-java-instrumentation" />

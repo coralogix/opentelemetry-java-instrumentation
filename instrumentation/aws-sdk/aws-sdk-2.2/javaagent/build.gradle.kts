@@ -97,7 +97,6 @@ muzzle {
 }
 
 dependencies {
-  implementation(project(":instrumentation:aws-sdk:aws-sdk-2.2:library-autoconfigure"))
   implementation(project(":instrumentation:aws-sdk:aws-sdk-2.2:library"))
 
   library("software.amazon.awssdk:aws-core:2.2.0")
@@ -140,6 +139,20 @@ testing {
           implementation("software.amazon.awssdk:s3:2.10.12")
         }
         implementation(project(":instrumentation:aws-sdk:aws-sdk-2.2:library"))
+      }
+    }
+
+    val s3CrtTest by registering(JvmTestSuite::class) {
+      dependencies {
+        if (latestDepTest) {
+          implementation("software.amazon.awssdk:s3:latest.release")
+          implementation("software.amazon.awssdk.crt:aws-crt:latest.release")
+        } else {
+          implementation("software.amazon.awssdk:s3:2.27.21")
+          implementation("software.amazon.awssdk.crt:aws-crt:0.30.11")
+        }
+        implementation(project(":instrumentation:aws-sdk:aws-sdk-2.2:library"))
+        implementation("org.testcontainers:localstack")
       }
     }
 

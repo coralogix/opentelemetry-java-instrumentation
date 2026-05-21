@@ -25,6 +25,7 @@ import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
+import java.util.Map;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -55,6 +56,9 @@ public class StatementInstrumentation implements TypeInstrumentation {
     transformer.applyAdviceToMethod(
         namedOneOf("executeBatch", "executeLargeBatch").and(takesNoArguments()).and(isPublic()),
         StatementInstrumentation.class.getName() + "$ExecuteBatchAdvice");
+    transformer.applyAdviceToMethod(
+        named("close").and(isPublic()).and(takesNoArguments()),
+        StatementInstrumentation.class.getName() + "$CloseAdvice");
   }
 
   @SuppressWarnings("unused")
@@ -154,12 +158,13 @@ public class StatementInstrumentation implements TypeInstrumentation {
 
       Context parentContext = currentContext();
       if (statement instanceof PreparedStatement) {
-        Long batchSize = JdbcData.getPreparedStatementBatchSize((PreparedStatement) statement);
         String sql = JdbcData.preparedStatement.get((PreparedStatement) statement);
         if (sql == null) {
           return;
         }
-        request = DbRequest.create(statement, sql, batchSize);
+        Long batchSize = JdbcData.getPreparedStatementBatchSize((PreparedStatement) statement);
+        Map<String, String> parameters = JdbcData.getParameters((PreparedStatement) statement);
+        request = DbRequest.create(statement, sql, batchSize, parameters);
       } else {
         JdbcData.StatementBatchInfo batchInfo = JdbcData.getStatementBatchInfo(statement);
         if (batchInfo == null) {
@@ -193,6 +198,15 @@ public class StatementInstrumentation implements TypeInstrumentation {
         scope.close();
         statementInstrumenter().end(context, request, null, throwable);
       }
+    }
+  }
+
+  @SuppressWarnings("unused")
+  public static class CloseAdvice {
+
+    @Advice.OnMethodEnter(suppress = Throwable.class)
+    public static void closeStatement(@Advice.This Statement statement) {
+      JdbcData.close(statement);
     }
   }
 }

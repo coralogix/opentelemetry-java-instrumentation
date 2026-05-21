@@ -5,35 +5,33 @@
 
 package io.opentelemetry.instrumentation.docs.utils;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import io.opentelemetry.instrumentation.docs.internal.ConfigurationOption;
+import io.opentelemetry.instrumentation.docs.internal.ConfigurationType;
 import io.opentelemetry.instrumentation.docs.internal.InstrumentationClassification;
-import io.opentelemetry.instrumentation.docs.internal.InstrumentationEntity;
 import io.opentelemetry.instrumentation.docs.internal.InstrumentationMetaData;
+import io.opentelemetry.instrumentation.docs.internal.InstrumentationModule;
 import java.io.BufferedWriter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.yaml.snakeyaml.DumperOptions;
-import org.yaml.snakeyaml.TypeDescription;
 import org.yaml.snakeyaml.Yaml;
 
 public class YamlHelper {
 
-  private static final Yaml metaDataYaml = new Yaml();
+  private static final Logger logger = Logger.getLogger(YamlHelper.class.getName());
 
-  static {
-    TypeDescription customDescriptor = new TypeDescription(InstrumentationMetaData.class);
-    customDescriptor.substituteProperty(
-        "disabled_by_default", Boolean.class, "getDisabledByDefault", "setDisabledByDefault");
-    customDescriptor.substituteProperty(
-        "classification", String.class, "getClassification", "setClassification");
-    metaDataYaml.addTypeDescription(customDescriptor);
-  }
+  private static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 
   public static void generateInstrumentationYaml(
-      List<InstrumentationEntity> list, BufferedWriter writer) {
+      List<InstrumentationModule> list, BufferedWriter writer) {
     DumperOptions options = new DumperOptions();
     options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
 
@@ -55,40 +53,25 @@ public class YamlHelper {
     }
   }
 
-  private static Map<String, Object> getLibraryInstrumentations(List<InstrumentationEntity> list) {
-    Map<String, List<InstrumentationEntity>> libraryInstrumentations =
+  private static Map<String, Object> getLibraryInstrumentations(List<InstrumentationModule> list) {
+    Map<String, List<InstrumentationModule>> libraryInstrumentations =
         list.stream()
             .filter(
-                entity ->
-                    entity
+                module ->
+                    module
                         .getMetadata()
                         .getClassification()
                         .equals(InstrumentationClassification.LIBRARY))
             .collect(
                 Collectors.groupingBy(
-                    InstrumentationEntity::getGroup, TreeMap::new, Collectors.toList()));
+                    InstrumentationModule::getGroup, TreeMap::new, Collectors.toList()));
 
     Map<String, Object> output = new TreeMap<>();
     libraryInstrumentations.forEach(
-        (group, entities) -> {
+        (group, modules) -> {
           List<Map<String, Object>> instrumentations = new ArrayList<>();
-          for (InstrumentationEntity entity : entities) {
-            Map<String, Object> entityMap = baseProperties(entity);
-
-            Map<String, Object> targetVersions = new TreeMap<>();
-            if (entity.getTargetVersions() != null && !entity.getTargetVersions().isEmpty()) {
-              entity
-                  .getTargetVersions()
-                  .forEach(
-                      (type, versions) -> {
-                        if (!versions.isEmpty()) {
-                          targetVersions.put(type.toString(), new ArrayList<>(versions));
-                        }
-                      });
-            }
-            entityMap.put("target_versions", targetVersions);
-
-            instrumentations.add(entityMap);
+          for (InstrumentationModule module : modules) {
+            instrumentations.add(baseProperties(module));
           }
           output.put(group, instrumentations);
         });
@@ -102,15 +85,15 @@ public class YamlHelper {
   }
 
   private static Map<String, Object> generateBaseYaml(
-      List<InstrumentationEntity> list, InstrumentationClassification classification) {
-    List<InstrumentationEntity> filtered =
+      List<InstrumentationModule> list, InstrumentationClassification classification) {
+    List<InstrumentationModule> filtered =
         list.stream()
-            .filter(entity -> entity.getMetadata().getClassification().equals(classification))
+            .filter(module -> module.getMetadata().getClassification().equals(classification))
             .toList();
 
     List<Map<String, Object>> instrumentations = new ArrayList<>();
-    for (InstrumentationEntity entity : filtered) {
-      instrumentations.add(baseProperties(entity));
+    for (InstrumentationModule module : filtered) {
+      instrumentations.add(baseProperties(module));
     }
 
     Map<String, Object> newOutput = new TreeMap<>();
@@ -121,39 +104,78 @@ public class YamlHelper {
     return newOutput;
   }
 
-  private static Map<String, Object> baseProperties(InstrumentationEntity entity) {
-    Map<String, Object> entityMap = new LinkedHashMap<>();
-    entityMap.put("name", entity.getInstrumentationName());
+  private static Map<String, Object> baseProperties(InstrumentationModule module) {
+    Map<String, Object> moduleMap = new LinkedHashMap<>();
+    moduleMap.put("name", module.getInstrumentationName());
 
-    if (entity.getMetadata() != null) {
-      if (entity.getMetadata().getDescription() != null) {
-        entityMap.put("description", entity.getMetadata().getDescription());
+    if (module.getMetadata() != null) {
+      if (module.getMetadata().getDescription() != null) {
+        moduleMap.put("description", module.getMetadata().getDescription());
       }
 
-      if (entity.getMetadata().getDisabledByDefault()) {
-        entityMap.put("disabled_by_default", entity.getMetadata().getDisabledByDefault());
+      if (module.getMetadata().getDisabledByDefault()) {
+        moduleMap.put("disabled_by_default", module.getMetadata().getDisabledByDefault());
       }
     }
 
-    entityMap.put("source_path", entity.getSrcPath());
+    moduleMap.put("source_path", module.getSrcPath());
 
-    if (entity.getMinJavaVersion() != null) {
-      entityMap.put("minimum_java_version", entity.getMinJavaVersion());
+    if (module.getMinJavaVersion() != null) {
+      moduleMap.put("minimum_java_version", module.getMinJavaVersion());
     }
 
-    Map<String, Object> scopeMap = getScopeMap(entity);
-    entityMap.put("scope", scopeMap);
-    return entityMap;
+    Map<String, Object> scopeMap = getScopeMap(module);
+    moduleMap.put("scope", scopeMap);
+
+    Map<String, Object> targetVersions = new TreeMap<>();
+    if (module.getTargetVersions() != null && !module.getTargetVersions().isEmpty()) {
+      module
+          .getTargetVersions()
+          .forEach(
+              (type, versions) -> {
+                if (!versions.isEmpty()) {
+                  targetVersions.put(type.toString(), new ArrayList<>(versions));
+                }
+              });
+    }
+    if (targetVersions.isEmpty()) {
+      logger.info("No Target versions found for " + module.getInstrumentationName());
+    } else {
+      moduleMap.put("target_versions", targetVersions);
+    }
+
+    if (module.getMetadata() != null && !module.getMetadata().getConfigurations().isEmpty()) {
+      List<Map<String, Object>> configurations = new ArrayList<>();
+      for (ConfigurationOption configuration : module.getMetadata().getConfigurations()) {
+        Map<String, Object> conf = new LinkedHashMap<>();
+        conf.put("name", configuration.name());
+        conf.put("description", configuration.description());
+        conf.put("type", configuration.type().toString());
+        if (configuration.type().equals(ConfigurationType.BOOLEAN)) {
+          conf.put("default", Boolean.parseBoolean(configuration.defaultValue()));
+        } else if (configuration.type().equals(ConfigurationType.INT)) {
+          conf.put("default", Integer.parseInt(configuration.defaultValue()));
+        } else {
+          conf.put("default", configuration.defaultValue());
+        }
+
+        configurations.add(conf);
+      }
+      moduleMap.put("configurations", configurations);
+    }
+
+    return moduleMap;
   }
 
-  private static Map<String, Object> getScopeMap(InstrumentationEntity entity) {
+  private static Map<String, Object> getScopeMap(InstrumentationModule module) {
     Map<String, Object> scopeMap = new LinkedHashMap<>();
-    scopeMap.put("name", entity.getScopeInfo().getName());
+    scopeMap.put("name", module.getScopeInfo().getName());
     return scopeMap;
   }
 
-  public static InstrumentationMetaData metaDataParser(String input) {
-    return metaDataYaml.loadAs(input, InstrumentationMetaData.class);
+  public static InstrumentationMetaData metaDataParser(String input)
+      throws JsonProcessingException {
+    return mapper.readValue(input, InstrumentationMetaData.class);
   }
 
   private YamlHelper() {}

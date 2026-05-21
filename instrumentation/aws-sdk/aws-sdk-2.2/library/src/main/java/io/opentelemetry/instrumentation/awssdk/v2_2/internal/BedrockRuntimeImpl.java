@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import software.amazon.awssdk.awscore.eventstream.EventStreamResponseHandler;
@@ -65,6 +66,7 @@ import software.amazon.awssdk.services.bedrockruntime.model.PayloadPart;
 import software.amazon.awssdk.services.bedrockruntime.model.ResponseStream;
 import software.amazon.awssdk.services.bedrockruntime.model.StopReason;
 import software.amazon.awssdk.services.bedrockruntime.model.TokenUsage;
+import software.amazon.awssdk.services.bedrockruntime.model.ToolResultBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolResultContentBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlockStart;
@@ -97,6 +99,16 @@ public final class BedrockRuntimeImpl {
   private static final JsonFactory JSON_FACTORY = new JsonFactory();
   private static final JsonNodeParser JSON_PARSER = JsonNode.parser();
   private static final DocumentUnmarshaller DOCUMENT_UNMARSHALLER = new DocumentUnmarshaller();
+
+  // used to approximate input/output token count for Cohere and Mistral AI models,
+  // which don't provide these values in the response body.
+  // https://docs.aws.amazon.com/bedrock/latest/userguide/model-customization-prepare.html
+  private static final Double CHARS_PER_TOKEN = 6.0;
+
+  private enum ModelFamily {
+    AMAZON_NOVA,
+    ANTHROPIC_CLAUDE
+  }
 
   static boolean isBedrockRuntimeRequest(SdkRequest request) {
     if (request instanceof ConverseRequest) {
@@ -244,8 +256,12 @@ public final class BedrockRuntimeImpl {
         return null;
       }
       count = config.asMap().get("max_new_tokens");
-    } else if (modelId.startsWith("anthropic.claude")) {
+    } else if (modelId.startsWith("anthropic.claude")
+        || modelId.startsWith("cohere.command")
+        || modelId.startsWith("mistral.mistral")) {
       count = body.asMap().get("max_tokens");
+    } else if (modelId.startsWith("meta.llama")) {
+      count = body.asMap().get("max_gen_len");
     }
     if (count != null && count.isNumber()) {
       return count.asNumber().longValue();
@@ -300,7 +316,10 @@ public final class BedrockRuntimeImpl {
         return null;
       }
       temperature = config.asMap().get("temperature");
-    } else if (modelId.startsWith("anthropic.claude")) {
+    } else if (modelId.startsWith("anthropic.claude")
+        || modelId.startsWith("meta.llama")
+        || modelId.startsWith("cohere.command")
+        || modelId.startsWith("mistral.mistral")) {
       temperature = body.asMap().get("temperature");
     }
     if (temperature != null && temperature.isNumber()) {
@@ -354,8 +373,12 @@ public final class BedrockRuntimeImpl {
         return null;
       }
       topP = config.asMap().get("topP");
-    } else if (modelId.startsWith("anthropic.claude")) {
+    } else if (modelId.startsWith("anthropic.claude")
+        || modelId.startsWith("meta.llama")
+        || modelId.startsWith("mistral.mistral")) {
       topP = body.asMap().get("top_p");
+    } else if (modelId.startsWith("cohere.command")) {
+      topP = body.asMap().get("p");
     }
     if (topP != null && topP.isNumber()) {
       return topP.asNumber().doubleValue();
@@ -409,9 +432,12 @@ public final class BedrockRuntimeImpl {
         return null;
       }
       stopSequences = config.asMap().get("stopSequences");
-    } else if (modelId.startsWith("anthropic.claude")) {
+    } else if (modelId.startsWith("anthropic.claude") || modelId.startsWith("cohere.command")) {
       stopSequences = body.asMap().get("stop_sequences");
+    } else if (modelId.startsWith("mistral.mistral")) {
+      stopSequences = body.asMap().get("stop");
     }
+    // meta llama request does not support stop sequences
     if (stopSequences != null && stopSequences.isList()) {
       return stopSequences.asList().stream()
           .filter(Document::isString)
@@ -474,8 +500,38 @@ public final class BedrockRuntimeImpl {
     Document stopReason = null;
     if (modelId.startsWith("amazon.nova")) {
       stopReason = body.asMap().get("stopReason");
-    } else if (modelId.startsWith("anthropic.claude")) {
+    } else if (modelId.startsWith("anthropic.claude") || modelId.startsWith("meta.llama")) {
       stopReason = body.asMap().get("stop_reason");
+    } else if (modelId.startsWith("cohere.command-r")) {
+      stopReason = body.asMap().get("finish_reason");
+    } else if (modelId.startsWith("cohere.command")) {
+      List<String> stopReasons = new ArrayList<>();
+      Document results = body.asMap().get("generations");
+      if (results == null || !results.isList()) {
+        return null;
+      }
+      for (Document result : results.asList()) {
+        stopReason = result.asMap().get("finish_reason");
+        if (stopReason == null || !stopReason.isString()) {
+          continue;
+        }
+        stopReasons.add(stopReason.asString());
+      }
+      return stopReasons;
+    } else if (modelId.startsWith("mistral.mistral")) {
+      List<String> stopReasons = new ArrayList<>();
+      Document results = body.asMap().get("outputs");
+      if (results == null || !results.isList()) {
+        return null;
+      }
+      for (Document result : results.asList()) {
+        stopReason = result.asMap().get("stop_reason");
+        if (stopReason == null || !stopReason.isString()) {
+          continue;
+        }
+        stopReasons.add(stopReason.asString());
+      }
+      return stopReasons;
     }
     if (stopReason != null && stopReason.isString()) {
       return Collections.singletonList(stopReason.asString());
@@ -534,6 +590,30 @@ public final class BedrockRuntimeImpl {
         return null;
       }
       count = usage.asMap().get("input_tokens");
+    } else if (modelId.startsWith("meta.llama")) {
+      count = body.asMap().get("prompt_token_count");
+    } else if (modelId.startsWith("cohere.command-r")) {
+      // approximate input tokens based on prompt length
+      Document requestBody = executionAttributes.getAttribute(INVOKE_MODEL_REQUEST_BODY);
+      if (requestBody == null || !requestBody.isMap()) {
+        return null;
+      }
+      String prompt = requestBody.asMap().get("message").asString();
+      if (prompt == null) {
+        return null;
+      }
+      count = Document.fromNumber(Math.ceil(prompt.length() / CHARS_PER_TOKEN));
+    } else if (modelId.startsWith("cohere.command") || modelId.startsWith("mistral.mistral")) {
+      // approximate input tokens based on prompt length
+      Document requestBody = executionAttributes.getAttribute(INVOKE_MODEL_REQUEST_BODY);
+      if (requestBody == null || !requestBody.isMap()) {
+        return null;
+      }
+      String prompt = requestBody.asMap().get("prompt").asString();
+      if (prompt == null) {
+        return null;
+      }
+      count = Document.fromNumber(Math.ceil(prompt.length() / CHARS_PER_TOKEN));
     }
     if (count != null && count.isNumber()) {
       return count.asNumber().longValue();
@@ -604,6 +684,42 @@ public final class BedrockRuntimeImpl {
         return null;
       }
       count = usage.asMap().get("output_tokens");
+    } else if (modelId.startsWith("meta.llama")) {
+      count = body.asMap().get("generation_token_count");
+    } else if (modelId.startsWith("cohere.command-r")) {
+      Document text = body.asMap().get("text");
+      if (text == null || !text.isString()) {
+        return null;
+      }
+      count = Document.fromNumber(Math.ceil(text.asString().length() / CHARS_PER_TOKEN));
+    } else if (modelId.startsWith("cohere.command")) {
+      Document generations = body.asMap().get("generations");
+      if (generations == null || !generations.isList()) {
+        return null;
+      }
+      long outputLength = 0;
+      for (Document generation : generations.asList()) {
+        Document text = generation.asMap().get("text");
+        if (text == null || !text.isString()) {
+          continue;
+        }
+        outputLength += text.asString().length();
+      }
+      count = Document.fromNumber(Math.ceil(outputLength / CHARS_PER_TOKEN));
+    } else if (modelId.startsWith("mistral.mistral")) {
+      Document outputs = body.asMap().get("outputs");
+      if (outputs == null || !outputs.isList()) {
+        return null;
+      }
+      long outputLength = 0;
+      for (Document output : outputs.asList()) {
+        Document text = output.asMap().get("text");
+        if (text == null || !text.isString()) {
+          continue;
+        }
+        outputLength += text.asString().length();
+      }
+      count = Document.fromNumber(Math.ceil(outputLength / CHARS_PER_TOKEN));
     }
     if (count != null && count.isNumber()) {
       return count.asNumber().longValue();
@@ -670,6 +786,7 @@ public final class BedrockRuntimeImpl {
     if (modelId == null) {
       return;
     }
+
     if (modelId.startsWith("amazon.titan")) {
       Document inputText = body.asMap().get("inputText");
       if (inputText == null || !inputText.isString()) {
@@ -684,7 +801,14 @@ public final class BedrockRuntimeImpl {
           otelContext, eventLogger, Collections.singletonList(message), captureMessageContent);
       return;
     }
-    if (modelId.startsWith("amazon.nova") || modelId.startsWith("anthropic.claude")) {
+
+    ModelFamily modelFamily = null;
+    if (modelId.startsWith("amazon.nova")) {
+      modelFamily = ModelFamily.AMAZON_NOVA;
+    } else if (modelId.startsWith("anthropic.claude")) {
+      modelFamily = ModelFamily.ANTHROPIC_CLAUDE;
+    }
+    if (modelFamily == ModelFamily.AMAZON_NOVA || modelFamily == ModelFamily.ANTHROPIC_CLAUDE) {
       Document messages = body.asMap().get("messages");
       if (messages == null || !messages.isList()) {
         return;
@@ -704,11 +828,10 @@ public final class BedrockRuntimeImpl {
         }
         List<ContentBlock> parsedContentBlocks = new ArrayList<>();
         for (Document contentBlock : content.asList()) {
-          Document text = contentBlock.asMap().get("text");
-          if (text == null || !text.isString()) {
-            continue;
+          ContentBlock parsed = parseModelContentBlock(modelFamily, contentBlock);
+          if (parsed != null) {
+            parsedContentBlocks.add(parsed);
           }
-          parsedContentBlocks.add(ContentBlock.fromText(text.asString()));
         }
         parsedMessages.add(
             Message.builder().role(role.asString()).content(parsedContentBlocks).build());
@@ -794,6 +917,7 @@ public final class BedrockRuntimeImpl {
     if (modelId == null) {
       return;
     }
+    ModelFamily modelFamily = null;
     if (modelId.startsWith("amazon.titan")) {
       // Text completion records an event per result.
       Document results = body.asMap().get("results");
@@ -830,6 +954,7 @@ public final class BedrockRuntimeImpl {
     String stopReasonString = null;
     Document content = null;
     if (modelId.startsWith("amazon.nova")) {
+      modelFamily = ModelFamily.AMAZON_NOVA;
       Document stopReason = body.asMap().get("stopReason");
       Document output = body.asMap().get("output");
       if (output == null || !output.isMap()) {
@@ -842,6 +967,7 @@ public final class BedrockRuntimeImpl {
       content = message.asMap().get("content");
       stopReasonString = stopReason.asString();
     } else if (modelId.startsWith("anthropic.claude")) {
+      modelFamily = ModelFamily.ANTHROPIC_CLAUDE;
       Document stopReason = body.asMap().get("stop_reason");
       content = body.asMap().get("content");
       stopReasonString = stopReason.asString();
@@ -852,11 +978,10 @@ public final class BedrockRuntimeImpl {
     }
     List<ContentBlock> parsedContentBlocks = new ArrayList<>();
     for (Document contentBlock : content.asList()) {
-      Document text = contentBlock.asMap().get("text");
-      if (text == null || !text.isString()) {
-        continue;
+      ContentBlock parsed = parseModelContentBlock(modelFamily, contentBlock);
+      if (parsed != null) {
+        parsedContentBlocks.add(parsed);
       }
-      parsedContentBlocks.add(ContentBlock.fromText(text.asString()));
     }
     Message parsedMessage =
         Message.builder().role(ConversationRole.ASSISTANT).content(parsedContentBlocks).build();
@@ -864,6 +989,106 @@ public final class BedrockRuntimeImpl {
         .setAttribute(EVENT_NAME, "gen_ai.choice")
         .setBody(convertMessage(parsedMessage, 0, stopReasonString, captureMessageContent))
         .emit();
+  }
+
+  @Nullable
+  private static ContentBlock parseModelContentBlock(
+      ModelFamily modelFamily, Document contentBlock) {
+    switch (modelFamily) {
+      case AMAZON_NOVA:
+        return parseAmazonNovaContentBlock(contentBlock);
+      case ANTHROPIC_CLAUDE:
+        return parseAnthropicClaudeContentBlock(contentBlock);
+    }
+    return null;
+  }
+
+  @Nullable
+  private static ContentBlock parseAmazonNovaContentBlock(Document contentBlock) {
+    Document text = contentBlock.asMap().get("text");
+    if (text != null && text.isString()) {
+      return ContentBlock.fromText(text.asString());
+    }
+
+    Document toolUse = contentBlock.asMap().get("toolUse");
+    if (toolUse != null && toolUse.isMap()) {
+      ToolUseBlock.Builder toolUseBlock = ToolUseBlock.builder();
+      handleToolUseAmazonNova(toolUse, toolUseBlock);
+      return ContentBlock.fromToolUse(toolUseBlock.build());
+    }
+
+    Document toolResult = contentBlock.asMap().get("toolResult");
+    if (toolResult != null && toolResult.isMap()) {
+      Document toolUseId = toolResult.asMap().get("toolUseId");
+      if (toolUseId != null && toolUseId.isString()) {
+        ToolResultBlock.Builder resultBlockBuilder =
+            ToolResultBlock.builder().toolUseId(toolUseId.asString());
+        Document toolResultContent = toolResult.asMap().get("content");
+        if (toolResultContent != null && toolResultContent.isList()) {
+          List<ToolResultContentBlock> toolResultContentBlocks =
+              toolResultContent.asList().stream()
+                  .map(
+                      toolResultContentBlockDoc -> {
+                        if (toolResultContentBlockDoc.isMap()) {
+                          Document json = toolResultContentBlockDoc.asMap().get("json");
+                          if (json != null) {
+                            return ToolResultContentBlock.builder().json(json).build();
+                          }
+                        }
+                        return null;
+                      })
+                  .filter(Objects::nonNull)
+                  .collect(Collectors.toList());
+          resultBlockBuilder.content(toolResultContentBlocks);
+        }
+        return ContentBlock.fromToolResult(resultBlockBuilder.build());
+      }
+    }
+
+    return null;
+  }
+
+  @Nullable
+  private static ContentBlock parseAnthropicClaudeContentBlock(Document contentBlock) {
+    Document type = contentBlock.asMap().get("type");
+    if (type == null || !type.isString()) {
+      return null;
+    }
+
+    switch (type.asString()) {
+      case "text":
+        {
+          Document text = contentBlock.asMap().get("text");
+          if (text != null && text.isString()) {
+            return ContentBlock.fromText(text.asString());
+          }
+          return null;
+        }
+      case "tool_use":
+        {
+          ToolUseBlock.Builder toolUseBlock = ToolUseBlock.builder();
+          handleToolUseAnthropicCloud(contentBlock, toolUseBlock);
+          return ContentBlock.fromToolUse(toolUseBlock.build());
+        }
+      case "tool_result":
+        {
+          Document toolUseId = contentBlock.asMap().get("tool_use_id");
+          if (toolUseId != null && toolUseId.isString()) {
+            ToolResultBlock.Builder resultBlockBuilder =
+                ToolResultBlock.builder().toolUseId(toolUseId.asString());
+            Document toolResultContent = contentBlock.asMap().get("content");
+            if (toolResultContent != null) {
+              resultBlockBuilder.content(ToolResultContentBlock.fromJson(toolResultContent));
+            }
+            return ContentBlock.fromToolResult(resultBlockBuilder.build());
+          }
+          return null;
+        }
+      default:
+        // pass through
+    }
+
+    return null;
   }
 
   @Nullable
@@ -1089,7 +1314,11 @@ public final class BedrockRuntimeImpl {
     private final boolean captureMessageContent;
     private final String requestModel;
 
-    private StringBuilder currentText;
+    @Nullable private StringBuilder currentText;
+
+    @Nullable private List<ToolUseBlock> tools;
+    @Nullable private ToolUseBlock.Builder currentTool;
+    @Nullable private StringBuilder currentInputJson;
 
     private int inputTokens;
     private int outputTokens;
@@ -1170,6 +1399,19 @@ public final class BedrockRuntimeImpl {
         }
         return;
       }
+
+      Document contentBlockStart = result.asMap().get("contentBlockStart");
+      if (contentBlockStart != null && contentBlockStart.isMap()) {
+        Document start = contentBlockStart.asMap().get("start");
+        if (start != null && start.isMap()) {
+          Document toolUse = start.asMap().get("toolUse");
+          if (toolUse != null && toolUse.isMap()) {
+            currentTool = ToolUseBlock.builder();
+            handleToolUseAmazonNova(toolUse, currentTool);
+          }
+        }
+        return;
+      }
       Document contentBlockDelta = result.asMap().get("contentBlockDelta");
       if (contentBlockDelta != null && contentBlockDelta.isMap()) {
         Document delta = contentBlockDelta.asMap().get("delta");
@@ -1182,7 +1424,18 @@ public final class BedrockRuntimeImpl {
             currentText.append(text.asString());
           }
         }
+        Document toolUse = delta.asMap().get("toolUse");
+        if (toolUse != null && toolUse.isMap()) {
+          handleToolUseAmazonNova(toolUse, currentTool);
+        }
         return;
+      }
+      if (result.asMap().get("contentBlockStop") != null && currentTool != null) {
+        if (tools == null) {
+          tools = new ArrayList<>();
+        }
+        tools.add(currentTool.build());
+        currentTool = null;
       }
       Document messageStop = result.asMap().get("messageStop");
       if (messageStop != null && messageStop.isMap()) {
@@ -1197,7 +1450,7 @@ public final class BedrockRuntimeImpl {
         stopReasons.add(stopReason);
         newEvent(otelContext, eventLogger)
             .setAttribute(EVENT_NAME, "gen_ai.choice")
-            .setBody(convertMessageData(currentText, null, 0, stopReason, captureMessageContent))
+            .setBody(convertMessageData(currentText, tools, 0, stopReason, captureMessageContent))
             .emit();
         return;
       }
@@ -1253,17 +1506,71 @@ public final class BedrockRuntimeImpl {
             }
             return;
           }
+        case "content_block_start":
+          {
+            Document contentBlock = result.asMap().get("content_block");
+            if (contentBlock == null || !contentBlock.isMap()) {
+              return;
+            }
+            Document contentBlockType = contentBlock.asMap().get("type");
+            if (contentBlockType == null || !contentBlockType.isString()) {
+              return;
+            }
+            if (contentBlockType.asString().equals("tool_use")) {
+              currentTool = ToolUseBlock.builder();
+              handleToolUseAnthropicCloud(contentBlock, currentTool);
+            }
+            return;
+          }
         case "content_block_delta":
           {
             Document delta = result.asMap().get("delta");
             if (delta == null || !delta.isMap()) {
               return;
             }
-            if (captureMessageContent) {
-              Document text = delta.asMap().get("text");
-              if (text != null && text.isString()) {
-                currentText.append(text.asString());
+            Document deltaType = delta.asMap().get("type");
+            if (deltaType == null || !deltaType.isString()) {
+              return;
+            }
+            switch (deltaType.asString()) {
+              case "text_delta":
+                {
+                  if (captureMessageContent) {
+                    Document text = delta.asMap().get("text");
+                    if (text != null && text.isString()) {
+                      currentText.append(text.asString());
+                    }
+                  }
+                  return;
+                }
+              case "input_json_delta":
+                {
+                  Document json = delta.asMap().get("partial_json");
+                  if (json != null && json.isString()) {
+                    if (currentInputJson == null) {
+                      currentInputJson = new StringBuilder();
+                    }
+                    currentInputJson.append(json.asString());
+                  }
+                  return;
+                }
+              default:
+                // fallthrough
+            }
+            return;
+          }
+        case "content_block_stop":
+          {
+            if (currentTool != null) {
+              if (currentInputJson != null) {
+                currentTool.input(deserializeDocument(currentInputJson.toString()));
+                currentInputJson.setLength(0);
               }
+              if (tools == null) {
+                tools = new ArrayList<>();
+              }
+              tools.add(currentTool.build());
+              currentTool = null;
             }
             return;
           }
@@ -1281,7 +1588,8 @@ public final class BedrockRuntimeImpl {
                 newEvent(otelContext, eventLogger)
                     .setAttribute(EVENT_NAME, "gen_ai.choice")
                     .setBody(
-                        convertMessageData(currentText, null, 0, stopReason, captureMessageContent))
+                        convertMessageData(
+                            currentText, tools, 0, stopReason, captureMessageContent))
                     .emit();
               }
             }
@@ -1360,6 +1668,43 @@ public final class BedrockRuntimeImpl {
     }
 
     return convertMessageData(text, toolCalls, index, stopReason, captureMessageContent);
+  }
+
+  private static void handleToolUseAmazonNova(Document toolUse, ToolUseBlock.Builder currentTool) {
+    Document toolUseId = toolUse.asMap().get("toolUseId");
+    if (toolUseId != null && toolUseId.isString()) {
+      currentTool.toolUseId(toolUseId.asString());
+    }
+    Document name = toolUse.asMap().get("name");
+    if (name != null && name.isString()) {
+      currentTool.name(name.asString());
+    }
+    Document input = toolUse.asMap().get("input");
+    if (input != null) {
+      Document parsedInput;
+      if (input.isString()) {
+        parsedInput = deserializeDocument(input.asString());
+      } else {
+        parsedInput = input;
+      }
+      currentTool.input(parsedInput);
+    }
+  }
+
+  private static void handleToolUseAnthropicCloud(
+      Document toolUse, ToolUseBlock.Builder currentTool) {
+    Document toolUseId = toolUse.asMap().get("id");
+    if (toolUseId != null && toolUseId.isString()) {
+      currentTool.toolUseId(toolUseId.asString());
+    }
+    Document name = toolUse.asMap().get("name");
+    if (name != null && name.isString()) {
+      currentTool.name(name.asString());
+    }
+    Document input = toolUse.asMap().get("input");
+    if (input != null) {
+      currentTool.input(input);
+    }
   }
 
   private static Value<?> convertMessageData(

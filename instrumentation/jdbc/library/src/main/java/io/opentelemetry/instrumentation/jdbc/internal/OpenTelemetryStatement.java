@@ -30,6 +30,7 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 class OpenTelemetryStatement<S extends Statement> implements Statement {
@@ -116,6 +117,7 @@ class OpenTelemetryStatement<S extends Statement> implements Statement {
 
   @Override
   public void close() throws SQLException {
+    JdbcData.close(this);
     delegate.close();
   }
 
@@ -176,7 +178,7 @@ class OpenTelemetryStatement<S extends Statement> implements Statement {
 
   @Override
   public ResultSet getResultSet() throws SQLException {
-    return new OpenTelemetryResultSet(delegate.getResultSet(), this);
+    return OpenTelemetryResultSet.wrap(delegate.getResultSet(), this);
   }
 
   @Override
@@ -246,7 +248,7 @@ class OpenTelemetryStatement<S extends Statement> implements Statement {
 
   @Override
   public ResultSet getGeneratedKeys() throws SQLException {
-    return new OpenTelemetryResultSet(delegate.getGeneratedKeys(), this);
+    return OpenTelemetryResultSet.wrap(delegate.getGeneratedKeys(), this);
   }
 
   @Override
@@ -384,7 +386,7 @@ class OpenTelemetryStatement<S extends Statement> implements Statement {
   }
 
   private <T, E extends Exception> T wrapBatchCall(ThrowingSupplier<T, E> callable) throws E {
-    DbRequest request = DbRequest.create(dbInfo, batchCommands, batchSize);
+    DbRequest request = DbRequest.create(dbInfo, batchCommands, batchSize, Collections.emptyMap());
     return wrapCall(request, callable);
   }
 }

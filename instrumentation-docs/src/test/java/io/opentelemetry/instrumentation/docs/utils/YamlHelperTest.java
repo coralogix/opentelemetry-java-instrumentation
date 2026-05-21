@@ -7,9 +7,12 @@ package io.opentelemetry.instrumentation.docs.utils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import io.opentelemetry.instrumentation.docs.internal.ConfigurationOption;
+import io.opentelemetry.instrumentation.docs.internal.ConfigurationType;
 import io.opentelemetry.instrumentation.docs.internal.InstrumentationClassification;
-import io.opentelemetry.instrumentation.docs.internal.InstrumentationEntity;
 import io.opentelemetry.instrumentation.docs.internal.InstrumentationMetaData;
+import io.opentelemetry.instrumentation.docs.internal.InstrumentationModule;
 import io.opentelemetry.instrumentation.docs.internal.InstrumentationType;
 import java.io.BufferedWriter;
 import java.io.StringWriter;
@@ -24,7 +27,7 @@ import org.junit.jupiter.api.Test;
 class YamlHelperTest {
   @Test
   void testPrintInstrumentationList() throws Exception {
-    List<InstrumentationEntity> entities = new ArrayList<>();
+    List<InstrumentationModule> modules = new ArrayList<>();
     Map<InstrumentationType, Set<String>> targetVersions1 = new HashMap<>();
     targetVersions1.put(
         InstrumentationType.JAVAAGENT,
@@ -34,10 +37,11 @@ class YamlHelperTest {
         new InstrumentationMetaData(
             "Spring Web 6.0 instrumentation",
             InstrumentationClassification.LIBRARY.toString(),
-            true);
+            true,
+            null);
 
-    entities.add(
-        new InstrumentationEntity.Builder()
+    modules.add(
+        new InstrumentationModule.Builder()
             .srcPath("instrumentation/spring/spring-web/spring-web-6.0")
             .instrumentationName("spring-web-6.0")
             .namespace("spring")
@@ -52,8 +56,8 @@ class YamlHelperTest {
     targetVersions2.put(
         InstrumentationType.LIBRARY,
         new HashSet<>(List.of("org.apache.struts:struts2-core:2.1.0")));
-    entities.add(
-        new InstrumentationEntity.Builder()
+    modules.add(
+        new InstrumentationModule.Builder()
             .srcPath("instrumentation/struts/struts-2.3")
             .instrumentationName("struts-2.3")
             .namespace("struts")
@@ -64,7 +68,7 @@ class YamlHelperTest {
     StringWriter stringWriter = new StringWriter();
     BufferedWriter writer = new BufferedWriter(stringWriter);
 
-    YamlHelper.generateInstrumentationYaml(entities, writer);
+    YamlHelper.generateInstrumentationYaml(modules, writer);
     writer.flush();
 
     String expectedYaml =
@@ -96,20 +100,24 @@ class YamlHelperTest {
 
   @Test
   void testGenerateInstrumentationYamlSeparatesClassifications() throws Exception {
-    List<InstrumentationEntity> entities = new ArrayList<>();
-    Map<InstrumentationType, Set<String>> springTargetVersions = new HashMap<>();
-    springTargetVersions.put(
-        InstrumentationType.JAVAAGENT,
-        new HashSet<>(List.of("org.springframework:spring-web:[6.0.0,)")));
+    List<InstrumentationModule> modules = new ArrayList<>();
+    Map<InstrumentationType, Set<String>> springTargetVersions =
+        Map.of(InstrumentationType.JAVAAGENT, Set.of("org.springframework:spring-web:[6.0.0,)"));
 
     InstrumentationMetaData springMetadata =
         new InstrumentationMetaData(
             "Spring Web 6.0 instrumentation",
             InstrumentationClassification.LIBRARY.toString(),
-            false);
+            false,
+            List.of(
+                new ConfigurationOption(
+                    "otel.instrumentation.spring-web-6.0.enabled",
+                    "Enables or disables Spring Web 6.0 instrumentation.",
+                    "true",
+                    ConfigurationType.BOOLEAN)));
 
-    entities.add(
-        new InstrumentationEntity.Builder()
+    modules.add(
+        new InstrumentationModule.Builder()
             .srcPath("instrumentation/spring/spring-web/spring-web-6.0")
             .instrumentationName("spring-web-6.0")
             .namespace("spring")
@@ -120,10 +128,11 @@ class YamlHelperTest {
             .build());
 
     InstrumentationMetaData internalMetadata =
-        new InstrumentationMetaData(null, InstrumentationClassification.INTERNAL.toString(), null);
+        new InstrumentationMetaData(
+            null, InstrumentationClassification.INTERNAL.toString(), null, null);
 
-    entities.add(
-        new InstrumentationEntity.Builder()
+    modules.add(
+        new InstrumentationModule.Builder()
             .srcPath("instrumentation/internal/internal-application-logger")
             .instrumentationName("internal-application-logger")
             .namespace("internal")
@@ -133,22 +142,28 @@ class YamlHelperTest {
             .build());
 
     InstrumentationMetaData customMetadata =
-        new InstrumentationMetaData(null, InstrumentationClassification.CUSTOM.toString(), null);
+        new InstrumentationMetaData(
+            null, InstrumentationClassification.CUSTOM.toString(), null, null);
 
-    entities.add(
-        new InstrumentationEntity.Builder()
+    Map<InstrumentationType, Set<String>> externalAnnotationsVersions =
+        Map.of(
+            InstrumentationType.JAVAAGENT,
+            Set.of("io.opentelemetry:opentelemetry-extension-annotations:[0.16.0,)"));
+
+    modules.add(
+        new InstrumentationModule.Builder()
             .srcPath("instrumentation/opentelemetry-external-annotations-1.0")
             .instrumentationName("opentelemetry-external-annotations")
             .namespace("opentelemetry-external-annotations")
             .group("opentelemetry-external-annotations")
             .metadata(customMetadata)
-            .targetVersions(new HashMap<>())
+            .targetVersions(externalAnnotationsVersions)
             .build());
 
     StringWriter stringWriter = new StringWriter();
     BufferedWriter writer = new BufferedWriter(stringWriter);
 
-    YamlHelper.generateInstrumentationYaml(entities, writer);
+    YamlHelper.generateInstrumentationYaml(modules, writer);
     writer.flush();
 
     String expectedYaml =
@@ -164,6 +179,11 @@ class YamlHelperTest {
                 target_versions:
                   javaagent:
                   - org.springframework:spring-web:[6.0.0,)
+                configurations:
+                - name: otel.instrumentation.spring-web-6.0.enabled
+                  description: Enables or disables Spring Web 6.0 instrumentation.
+                  type: boolean
+                  default: true
             internal:
             - name: internal-application-logger
               source_path: instrumentation/internal/internal-application-logger
@@ -174,49 +194,93 @@ class YamlHelperTest {
               source_path: instrumentation/opentelemetry-external-annotations-1.0
               scope:
                 name: io.opentelemetry.opentelemetry-external-annotations
+              target_versions:
+                javaagent:
+                - io.opentelemetry:opentelemetry-extension-annotations:[0.16.0,)
             """;
 
     assertThat(expectedYaml).isEqualTo(stringWriter.toString());
   }
 
   @Test
-  void testMetadataParser() {
+  void testMetadataParser() throws JsonProcessingException {
     String input =
         """
             description: test description
             classification: internal
             disabled_by_default: true
+            configurations:
+              - name: otel.instrumentation.common.db-statement-sanitizer.enabled
+                description: Enables statement sanitization for database queries.
+                type: boolean
+                default: true
             """;
 
     InstrumentationMetaData metadata = YamlHelper.metaDataParser(input);
+
+    ConfigurationOption config = metadata.getConfigurations().get(0);
+    assertThat(config.name())
+        .isEqualTo("otel.instrumentation.common.db-statement-sanitizer.enabled");
+    assertThat(config.description())
+        .isEqualTo("Enables statement sanitization for database queries.");
+    assertThat(config.defaultValue()).isEqualTo("true");
+
     assertThat(metadata.getClassification()).isEqualTo(InstrumentationClassification.INTERNAL);
     assertThat(metadata.getDescription()).isEqualTo("test description");
     assertThat(metadata.getDisabledByDefault()).isEqualTo(true);
   }
 
   @Test
-  void testMetadataParserWithOnlyLibraryEntry() {
+  void testMetadataParserWithOnlyLibraryEntry() throws JsonProcessingException {
     String input = "classification: internal";
     InstrumentationMetaData metadata = YamlHelper.metaDataParser(input);
     assertThat(metadata.getClassification()).isEqualTo(InstrumentationClassification.INTERNAL);
     assertThat(metadata.getDescription()).isNull();
     assertThat(metadata.getDisabledByDefault()).isFalse();
+    assertThat(metadata.getConfigurations()).isEmpty();
   }
 
   @Test
-  void testMetadataParserWithOnlyDescription() {
+  void testMetadataParserWithOnlyDescription() throws JsonProcessingException {
     String input = "description: false";
     InstrumentationMetaData metadata = YamlHelper.metaDataParser(input);
     assertThat(metadata.getClassification()).isEqualTo(InstrumentationClassification.LIBRARY);
     assertThat(metadata.getDisabledByDefault()).isFalse();
+    assertThat(metadata.getConfigurations()).isEmpty();
   }
 
   @Test
-  void testMetadataParserWithOnlyDisabledByDefault() {
+  void testMetadataParserWithOnlyDisabledByDefault() throws JsonProcessingException {
     String input = "disabled_by_default: true";
     InstrumentationMetaData metadata = YamlHelper.metaDataParser(input);
     assertThat(metadata.getClassification()).isEqualTo(InstrumentationClassification.LIBRARY);
     assertThat(metadata.getDescription()).isNull();
     assertThat(metadata.getDisabledByDefault()).isTrue();
+    assertThat(metadata.getConfigurations()).isEmpty();
+  }
+
+  @Test
+  void testMetadataParserWithOnlyConfigurations() throws JsonProcessingException {
+    String input =
+        """
+            configurations:
+              - name: otel.instrumentation.common.db-statement-sanitizer.enabled
+                description: Enables statement sanitization for database queries.
+                type: boolean
+                default: true
+        """;
+    InstrumentationMetaData metadata = YamlHelper.metaDataParser(input);
+    ConfigurationOption config = metadata.getConfigurations().get(0);
+
+    assertThat(metadata.getClassification()).isEqualTo(InstrumentationClassification.LIBRARY);
+    assertThat(metadata.getDescription()).isNull();
+    assertThat(metadata.getDisabledByDefault()).isFalse();
+
+    assertThat(config.name())
+        .isEqualTo("otel.instrumentation.common.db-statement-sanitizer.enabled");
+    assertThat(config.description())
+        .isEqualTo("Enables statement sanitization for database queries.");
+    assertThat(config.defaultValue()).isEqualTo("true");
+    assertThat(config.type()).isEqualTo(ConfigurationType.BOOLEAN);
   }
 }
