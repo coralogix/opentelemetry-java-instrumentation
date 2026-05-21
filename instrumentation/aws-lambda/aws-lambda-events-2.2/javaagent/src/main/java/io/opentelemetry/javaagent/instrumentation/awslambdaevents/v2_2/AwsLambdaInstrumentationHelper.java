@@ -6,8 +6,10 @@
 package io.opentelemetry.javaagent.instrumentation.awslambdaevents.v2_2;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.AwsLambdaFunctionInstrumenter;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Trigger;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Triggers;
+import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.WrapperConfiguration;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.AwsLambdaEventsInstrumenterFactory;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.ApiGatewayHttpTrigger;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.ApiGatewayRestTrigger;
@@ -15,6 +17,8 @@ import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.D
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.S3Trigger;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.SqsTrigger;
 import io.opentelemetry.javaagent.bootstrap.internal.AgentCommonConfig;
+import io.opentelemetry.javaagent.bootstrap.internal.AgentInstrumentationConfig;
+import java.time.Duration;
 
 public final class AwsLambdaInstrumentationHelper {
 
@@ -29,20 +33,27 @@ public final class AwsLambdaInstrumentationHelper {
           },
           GlobalOpenTelemetry.get());
 
+  private static final AwsLambdaFunctionInstrumenter FUNCTION_INSTRUMENTER =
+      AwsLambdaEventsInstrumenterFactory.createInstrumenter(
+          GlobalOpenTelemetry.get(), AgentCommonConfig.get().getKnownHttpRequestMethods());
+
+  private static final Duration FLUSH_TIMEOUT =
+      Duration.ofMillis(
+          AgentInstrumentationConfig.get()
+              .getLong(
+                  "otel.instrumentation.aws-lambda.flush-timeout",
+                  WrapperConfiguration.OTEL_LAMBDA_FLUSH_TIMEOUT_DEFAULT.toMillis()));
+
   public static Triggers getTriggers() {
     return TRIGGERS;
   }
 
-  private static final io.opentelemetry.instrumentation.awslambdacore.v1_0.internal
-          .AwsLambdaFunctionInstrumenter
-      FUNCTION_INSTRUMENTER =
-          AwsLambdaEventsInstrumenterFactory.createInstrumenter(
-              GlobalOpenTelemetry.get(), AgentCommonConfig.get().getKnownHttpRequestMethods());
-
-  public static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal
-          .AwsLambdaFunctionInstrumenter
-      functionInstrumenter() {
+  public static AwsLambdaFunctionInstrumenter functionInstrumenter() {
     return FUNCTION_INSTRUMENTER;
+  }
+
+  public static Duration flushTimeout() {
+    return FLUSH_TIMEOUT;
   }
 
   private AwsLambdaInstrumentationHelper() {}

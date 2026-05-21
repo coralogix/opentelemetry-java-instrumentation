@@ -340,6 +340,7 @@ abstract class AbstractPulsarClientTest {
                                             equalTo(SERVER_ADDRESS, brokerHost)))));
   }
 
+  @SuppressWarnings("deprecation") // using deprecated semconv
   static List<AttributeAssertion> sendAttributes(
       String destination, String messageId, boolean testHeaders) {
     List<AttributeAssertion> assertions =
@@ -377,6 +378,7 @@ abstract class AbstractPulsarClientTest {
     return receiveAttributes(destination, messageId, testHeaders, false);
   }
 
+  @SuppressWarnings("deprecation") // using deprecated semconv
   static List<AttributeAssertion> receiveAttributes(
       String destination, String messageId, boolean testHeaders, boolean isBatch) {
     List<AttributeAssertion> assertions =
@@ -405,6 +407,7 @@ abstract class AbstractPulsarClientTest {
     return assertions;
   }
 
+  @SuppressWarnings("deprecation") // using deprecated semconv
   static List<AttributeAssertion> processAttributes(
       String destination, String messageId, boolean testHeaders) {
     List<AttributeAssertion> assertions =
