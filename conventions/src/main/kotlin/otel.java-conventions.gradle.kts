@@ -72,12 +72,13 @@ tasks.withType<JavaCompile>().configureEach {
           // We suppress the "options" warning because it prevents compilation on modern JDKs
           "-Xlint:-options",
           // jdk21 generates more serial warnings than previous versions
-          "-Xlint:-serial",
-
-          // Fail build on any warning
-          "-Werror"
+          "-Xlint:-serial"
         )
       )
+      if (System.getProperty("dev") != "true") {
+        // Fail build on any warning
+        compilerArgs.add("-Werror")
+      }
     }
 
     encoding = "UTF-8"
@@ -142,7 +143,7 @@ abstract class NettyAlignmentRule : ComponentMetadataRule {
     with(ctx.details) {
       if (id.group == "io.netty" && id.name != "netty") {
         if (id.version.startsWith("4.1.")) {
-          belongsTo("io.netty:netty-bom:4.1.109.Final", false)
+          belongsTo("io.netty:netty-bom:4.1.111.Final", false)
         } else if (id.version.startsWith("4.0.")) {
           belongsTo("io.netty:netty-bom:4.0.56.Final", false)
         }
@@ -427,7 +428,7 @@ codenarc {
 checkstyle {
   configFile = rootProject.file("buildscripts/checkstyle.xml")
   // this version should match the version of google_checks.xml used as basis for above configuration
-  toolVersion = "10.16.0"
+  toolVersion = "10.17.0"
   maxWarnings = 0
 }
 
