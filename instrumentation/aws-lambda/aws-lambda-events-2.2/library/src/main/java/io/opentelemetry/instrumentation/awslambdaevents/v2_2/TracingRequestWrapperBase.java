@@ -9,7 +9,6 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.opentelemetry.instrumentation.api.internal.HttpConstants;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.TracingRequestHandler;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.MapUtils;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.WrappedLambda;
@@ -48,11 +47,7 @@ abstract class TracingRequestWrapperBase<I, O> extends TracingRequestHandler<I, 
       OpenTelemetrySdk openTelemetrySdk,
       WrappedLambda wrappedLambda,
       BiFunction<I, Class<?>, Object> parameterMapper) {
-    super(
-        openTelemetrySdk,
-        WrapperConfiguration.flushTimeout(),
-        AwsLambdaEventsInstrumenterFactory.createInstrumenter(
-            openTelemetrySdk, HttpConstants.KNOWN_METHODS));
+    super(openTelemetrySdk, WrapperConfiguration.flushTimeout());
     this.wrappedLambda = wrappedLambda;
     this.targetMethod = wrappedLambda.getRequestTargetMethod();
     this.parameterMapper = parameterMapper;

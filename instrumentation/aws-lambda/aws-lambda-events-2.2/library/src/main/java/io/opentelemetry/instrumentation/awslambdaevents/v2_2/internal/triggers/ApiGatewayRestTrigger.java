@@ -7,20 +7,13 @@ import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Trigg
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.HTTP_RESPONSE_BODY;
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.limitedPayload;
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.logException;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.FAAS_TRIGGER;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_METHOD;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_ROUTE;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_SCHEME;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_STATUS_CODE;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_URL;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.NET_HOST_NAME;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.NET_SOCK_PEER_ADDR;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.USER_AGENT_ORIGINAL;
+import static io.opentelemetry.semconv.SemanticAttributes.FAAS_TRIGGER;
 
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent.ProxyRequestContext;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent.RequestIdentity;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
+import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.context.Context;
@@ -29,7 +22,7 @@ import io.opentelemetry.instrumentation.api.instrumenter.SpanStatusBuilder;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Trigger;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerMismatchException;
-import io.opentelemetry.semconv.trace.attributes.SemanticAttributes.FaasTriggerValues;
+import io.opentelemetry.semconv.SemanticAttributes;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -43,6 +36,17 @@ import javax.annotation.Nullable;
  * any time.
  */
 public final class ApiGatewayRestTrigger extends Trigger {
+
+  private static final AttributeKey<String> HTTP_METHOD = AttributeKey.stringKey("http.method");
+  private static final AttributeKey<String> HTTP_ROUTE = AttributeKey.stringKey("http.route");
+  private static final AttributeKey<String> HTTP_SCHEME = AttributeKey.stringKey("http.scheme");
+  private static final AttributeKey<Long> HTTP_STATUS_CODE = AttributeKey.longKey("http.status_code");
+  private static final AttributeKey<String> HTTP_URL = AttributeKey.stringKey("http.url");
+  private static final AttributeKey<String> NET_HOST_NAME = AttributeKey.stringKey("net.host.name");
+  private static final AttributeKey<String> NET_SOCK_PEER_ADDR =
+      AttributeKey.stringKey("net.sock.peer.addr");
+  private static final AttributeKey<String> USER_AGENT_ORIGINAL =
+      AttributeKey.stringKey("user_agent.original");
 
   @Override
   public boolean matches(AwsLambdaRequest request) {
@@ -85,7 +89,7 @@ public final class ApiGatewayRestTrigger extends Trigger {
       RequestIdentity identity = requestContext.getIdentity();
       Map<String, String> headers = lowercaseMap(req.getHeaders());
 
-      attributes.put(FAAS_TRIGGER, FaasTriggerValues.HTTP);
+      attributes.put(FAAS_TRIGGER, SemanticAttributes.FaasTriggerValues.HTTP);
       attributes.put(FAAS_TRIGGER_TYPE, "Api Gateway Rest");
       attributes.put(HTTP_METHOD, requestContext.getHttpMethod());
       attributes.put(HTTP_ROUTE, requestContext.getResourcePath());
@@ -171,7 +175,7 @@ public final class ApiGatewayRestTrigger extends Trigger {
 
     APIGatewayProxyResponseEvent res = requireCorrectResponseType(response);
     try {
-      attributes.put(HTTP_STATUS_CODE, res.getStatusCode());
+      attributes.put(HTTP_STATUS_CODE, (long) res.getStatusCode());
       attributes.put(HTTP_RESPONSE_BODY, limitedPayload(res.getBody()));
     } catch (RuntimeException e) {
       logException(e, "ApiGatewayRestTrigger.onEnd instrumentation failed");
