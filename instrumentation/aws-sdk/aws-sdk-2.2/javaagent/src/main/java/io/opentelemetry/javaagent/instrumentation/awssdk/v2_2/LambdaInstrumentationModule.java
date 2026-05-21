@@ -5,13 +5,14 @@
 
 package io.opentelemetry.javaagent.instrumentation.awssdk.v2_2;
 
+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;
+import static net.bytebuddy.matcher.ElementMatchers.none;
 import com.google.auto.service.AutoService;
 import io.opentelemetry.instrumentation.awssdk.v2_2.LambdaAdviceBridge;
 import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;
 import net.bytebuddy.asm.Advice;
-
-import static net.bytebuddy.matcher.ElementMatchers.none;
+import net.bytebuddy.matcher.ElementMatcher;
 
 @AutoService(InstrumentationModule.class)
 public class LambdaInstrumentationModule extends AbstractAwsSdkInstrumentationModule {
@@ -21,10 +22,10 @@ public class LambdaInstrumentationModule extends AbstractAwsSdkInstrumentationMo
   }
 
   @Override
-  public boolean isHelperClass(String className) {
-    return super.isHelperClass(className)
-        || className.startsWith("com.fasterxml.jackson.")
-        || className.startsWith("org.w3c.dom."); // Jackson references it somewhere
+  public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {
+    return hasClassesNamed(
+        "software.amazon.awssdk.services.lambda.model.InvokeRequest",
+        "software.amazon.awssdk.protocols.jsoncore.JsonNode");
   }
 
   @Override

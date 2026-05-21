@@ -64,11 +64,10 @@ muzzle {
     // several software.amazon.awssdk artifacts are missing for this version
     skip("2.17.200")
   }
-
   pass {
     group.set("software.amazon.awssdk")
     module.set("lambda")
-    versions.set("[2.2.0,)")
+    versions.set("[2.17.0,)")
     // Used by all SDK services, the only case it isn't is an SDK extension such as a custom HTTP
     // client, which is not target of instrumentation anyways.
     extraDependency("software.amazon.awssdk:protocol-core")
@@ -99,6 +98,7 @@ dependencies {
   testLibrary("software.amazon.awssdk:dynamodb:2.2.0")
   testLibrary("software.amazon.awssdk:ec2:2.2.0")
   testLibrary("software.amazon.awssdk:kinesis:2.2.0")
+  testLibrary("software.amazon.awssdk:lambda:2.2.0")
   testLibrary("software.amazon.awssdk:rds:2.2.0")
   testLibrary("software.amazon.awssdk:s3:2.2.0")
   testLibrary("software.amazon.awssdk:sqs:2.2.0")

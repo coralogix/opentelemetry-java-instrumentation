@@ -5,35 +5,41 @@
 
 package io.opentelemetry.instrumentation.awssdk.v2_2;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapPropagator;
-import io.opentelemetry.context.propagation.TextMapSetter;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.annotation.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.SdkRequest;
-import software.amazon.awssdk.services.lambda.LambdaClient;
+import software.amazon.awssdk.protocols.jsoncore.JsonNode;
+import software.amazon.awssdk.protocols.jsoncore.internal.ObjectJsonNode;
+import software.amazon.awssdk.protocols.jsoncore.internal.StringJsonNode;
 import software.amazon.awssdk.services.lambda.model.InvokeRequest;
 
 // this class is only used from LambdaAccess from method with @NoMuzzle annotation
+// Direct lambda invocations (e.g., not through an api gateway) currently strip
+// away the otel propagation headers (but leave x-ray ones intact). Use the
+// custom client context header as an additional propagation mechanism for this
+// very specific scenario. For reference, the header is named "X-Amz-Client-Context" but the api to
+// manipulate it abstracts that away. The client context field is documented in
+// https://docs.aws.amazon.com/lambda/latest/api/API_Invoke.html#API_Invoke_RequestParameters
+
 final class LambdaImpl {
-
-  private static final Logger logger = LoggerFactory.getLogger(LambdaImpl.class);
-
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
   static {
-    // Force loading of LambdaClient; this ensures that an exception is thrown at this point when the
-    // Lambda library is not present, which will cause LambdaAccess to have enabled=false in library mode.
+    // Force loading of InvokeRequest; this ensures that an exception is thrown at this point when
+    // the Lambda library is not present, which will cause LambdaAccess to have
+    // enabled=false in library mode.
     @SuppressWarnings("unused")
-    String ensureLoadedDummy = LambdaClient.class.getName();
+    String invokeRequestName = InvokeRequest.class.getName();
+    // was added in 2.17.0
+    @SuppressWarnings("unused")
+    String jsonNodeName = JsonNode.class.getName();
   }
 
+  private static final String CLIENT_CONTEXT_CUSTOM_FIELDS_KEY = "custom";
+  static final int MAX_CLIENT_CONTEXT_LENGTH = 3583; // visible for testing
   private LambdaImpl() {}
 
   @Nullable
@@ -42,93 +48,50 @@ final class LambdaImpl {
     if (messagingPropagator == null) {
       return null;
     }
-
-    if (request instanceof InvokeRequest) {
-      return injectIntoInvokeRequest((InvokeRequest) request, otelContext, messagingPropagator);
-    } else {
-      return null;
+    if (isDirectLambdaInvocation(request)) {
+      return modifyOrAddCustomContextHeader((InvokeRequest) request, otelContext, messagingPropagator);
     }
+    return null;
   }
 
-  private static SdkRequest injectIntoInvokeRequest(
-      InvokeRequest request, Context otelContext, TextMapPropagator messagingPropagator) {
-    String modifiedClientContext = injectIntoClientContext(request.clientContext(), otelContext,
-        messagingPropagator);
-    return request.toBuilder().clientContext(modifiedClientContext).build();
-  }
-
-  private static String injectIntoClientContext(
-      String originalClientContext,
-      Context otelContext,
-      TextMapPropagator messagingPropagator) {
-
-    try {
-      Map<String, Object> clientContext = deserialiseClientContext(originalClientContext);
-      if (clientContext == null) {
-        clientContext = new HashMap<>();
-      }
-
-      Object customObject = clientContext.computeIfAbsent("custom",
-          k -> new HashMap<String, String>());
-      if (!(customObject instanceof Map)) {
-        return originalClientContext;
-      }
-
-      @SuppressWarnings("unchecked")
-      Map<String, String> custom = (Map<String, String>) customObject;
-      messagingPropagator.inject(
-          otelContext,
-          custom,
-          MapSetter.INSTANCE
-      );
-      String modifiedClientContext = serialiseClientContext(clientContext);
-      // Make sure we don't exceed the size limit imposed by AWS https://docs.aws.amazon.com/lambda/latest/dg/API_Invoke.html
-      if (modifiedClientContext.length() <= 3583) {
-        return modifiedClientContext;
-      } else {
-        return originalClientContext;
-      }
-    } catch (Throwable e) {
-      logger.warn("Failed to inject trace context into client context", e);
-      // Whenever something goes wrong we fall back to using the original clientContext
-      return originalClientContext;
-    }
+  static boolean isDirectLambdaInvocation(SdkRequest request) {
+    return request instanceof InvokeRequest;
   }
 
   @Nullable
-  private static Map<String, Object> deserialiseClientContext(String base64ClientContext)
-      throws Exception {
-    try {
-      if (base64ClientContext == null) {
-        return null;
-      } else {
-        byte[] json = Base64.getDecoder().decode(base64ClientContext);
-        TypeReference<HashMap<String, Object>> typeRef
-            = new TypeReference<HashMap<String, Object>>() {};
-        return OBJECT_MAPPER.readValue(json, typeRef);
-      }
-    } catch (Throwable e) {
-      throw new Exception("Failed to deserialize client context \"" + base64ClientContext + "\"",
-          e);
+  static SdkRequest modifyOrAddCustomContextHeader(
+      InvokeRequest request, Context otelContext, TextMapPropagator messagingPropagator) {
+    InvokeRequest.Builder builder = request.toBuilder();
+    String clientContextString = request.clientContext();
+    String clientContextJsonString = "{}";
+    if (clientContextString != null && !clientContextString.isEmpty()) {
+      clientContextJsonString =
+          new String(Base64.getDecoder().decode(clientContextString), StandardCharsets.UTF_8);
     }
-  }
-
-  private static String serialiseClientContext(Map<String, Object> context)
-      throws Exception {
-    try {
-      byte[] json = OBJECT_MAPPER.writeValueAsBytes(context);
-      return Base64.getEncoder().encodeToString(json);
-    } catch (Throwable e) {
-      throw new Exception("Failed to serialise client context " + context, e);
+    JsonNode jsonNode = JsonNode.parser().parse(clientContextJsonString);
+    if (!jsonNode.isObject()) {
+      return null;
     }
-  }
-
-  private enum MapSetter implements TextMapSetter<Map<String, String>> {
-    INSTANCE;
-
-    @Override
-    public void set(Map<String, String> carrier, String key, String value) {
-      carrier.put(key, value);
+    JsonNode customNode =
+        jsonNode
+            .asObject()
+            .computeIfAbsent(CLIENT_CONTEXT_CUSTOM_FIELDS_KEY, k -> new ObjectJsonNode(new LinkedHashMap<>()));
+    if (!customNode.isObject()) {
+      return null;
     }
+    Map<String, JsonNode> map = customNode.asObject();
+    messagingPropagator.inject(
+        otelContext, map, (nodes, key, value) -> nodes.put(key, new StringJsonNode(value)));
+    if (map.isEmpty()) {
+      return null;
+    }
+
+    String newJson = jsonNode.toString();
+    String newJson64 = Base64.getEncoder().encodeToString(newJson.getBytes(StandardCharsets.UTF_8));
+    if (newJson64.length() >= MAX_CLIENT_CONTEXT_LENGTH) {
+      return null;
+    }
+    builder.clientContext(newJson64);
+    return builder.build();
   }
 }
