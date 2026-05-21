@@ -8,6 +8,7 @@ package io.opentelemetry.javaagent.instrumentation.jdbc.test;
 import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;
 import static io.opentelemetry.instrumentation.testing.junit.db.DbClientMetricsTestUtil.assertDurationMetric;
 import static io.opentelemetry.instrumentation.testing.junit.db.SemconvStabilityUtil.maybeStable;
+import static io.opentelemetry.instrumentation.testing.junit.db.SemconvStabilityUtil.maybeStableDbSystemName;
 import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.assertThat;
 import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;
 import static io.opentelemetry.semconv.ServerAttributes.SERVER_ADDRESS;
@@ -21,6 +22,7 @@ import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_OPER
 import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_SQL_TABLE;
 import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_STATEMENT;
 import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_SYSTEM;
+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_SYSTEM_NAME;
 import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_USER;
 import static java.util.Arrays.asList;
 
@@ -49,7 +51,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -372,7 +373,7 @@ class JdbcInstrumentationTest {
                         .hasKind(SpanKind.CLIENT)
                         .hasParent(trace.getSpan(0))
                         .hasAttributesSatisfyingExactly(
-                            equalTo(DB_SYSTEM, system),
+                            equalTo(maybeStable(DB_SYSTEM), maybeStableDbSystemName(system)),
                             equalTo(maybeStable(DB_NAME), dbNameLower),
                             equalTo(DB_USER, emitStableDatabaseSemconv() ? null : username),
                             equalTo(DB_CONNECTION_STRING, emitStableDatabaseSemconv() ? null : url),
@@ -384,13 +385,13 @@ class JdbcInstrumentationTest {
       assertDurationMetric(
           testing,
           "io.opentelemetry.jdbc",
-          DB_SYSTEM,
+          DB_SYSTEM_NAME,
           DB_COLLECTION_NAME,
           DB_NAMESPACE,
           DB_OPERATION_NAME);
     } else {
       assertDurationMetric(
-          testing, "io.opentelemetry.jdbc", DB_SYSTEM, DB_OPERATION_NAME, DB_NAMESPACE);
+          testing, "io.opentelemetry.jdbc", DB_SYSTEM_NAME, DB_OPERATION_NAME, DB_NAMESPACE);
     }
   }
 
@@ -504,7 +505,7 @@ class JdbcInstrumentationTest {
                         .hasKind(SpanKind.CLIENT)
                         .hasParent(trace.getSpan(0))
                         .hasAttributesSatisfyingExactly(
-                            equalTo(DB_SYSTEM, system),
+                            equalTo(maybeStable(DB_SYSTEM), maybeStableDbSystemName(system)),
                             equalTo(maybeStable(DB_NAME), dbNameLower),
                             equalTo(DB_USER, emitStableDatabaseSemconv() ? null : username),
                             equalTo(DB_CONNECTION_STRING, emitStableDatabaseSemconv() ? null : url),
@@ -541,7 +542,7 @@ class JdbcInstrumentationTest {
                         .hasKind(SpanKind.CLIENT)
                         .hasParent(trace.getSpan(0))
                         .hasAttributesSatisfyingExactly(
-                            equalTo(DB_SYSTEM, system),
+                            equalTo(maybeStable(DB_SYSTEM), maybeStableDbSystemName(system)),
                             equalTo(maybeStable(DB_NAME), dbNameLower),
                             equalTo(DB_USER, emitStableDatabaseSemconv() ? null : username),
                             equalTo(DB_CONNECTION_STRING, emitStableDatabaseSemconv() ? null : url),
@@ -578,7 +579,7 @@ class JdbcInstrumentationTest {
                         .hasKind(SpanKind.CLIENT)
                         .hasParent(trace.getSpan(0))
                         .hasAttributesSatisfyingExactly(
-                            equalTo(DB_SYSTEM, system),
+                            equalTo(maybeStable(DB_SYSTEM), maybeStableDbSystemName(system)),
                             equalTo(maybeStable(DB_NAME), dbNameLower),
                             equalTo(DB_USER, emitStableDatabaseSemconv() ? null : username),
                             equalTo(DB_CONNECTION_STRING, emitStableDatabaseSemconv() ? null : url),
@@ -714,7 +715,7 @@ class JdbcInstrumentationTest {
                         .hasKind(SpanKind.CLIENT)
                         .hasParent(trace.getSpan(0))
                         .hasAttributesSatisfyingExactly(
-                            equalTo(DB_SYSTEM, system),
+                            equalTo(maybeStable(DB_SYSTEM), maybeStableDbSystemName(system)),
                             equalTo(maybeStable(DB_NAME), dbNameLower),
                             equalTo(DB_USER, emitStableDatabaseSemconv() ? null : username),
                             equalTo(DB_CONNECTION_STRING, emitStableDatabaseSemconv() ? null : url),
@@ -816,7 +817,7 @@ class JdbcInstrumentationTest {
                         .hasKind(SpanKind.CLIENT)
                         .hasParent(trace.getSpan(0))
                         .hasAttributesSatisfyingExactly(
-                            equalTo(DB_SYSTEM, system),
+                            equalTo(maybeStable(DB_SYSTEM), maybeStableDbSystemName(system)),
                             equalTo(maybeStable(DB_NAME), dbNameLower),
                             equalTo(DB_USER, emitStableDatabaseSemconv() ? null : username),
                             equalTo(DB_CONNECTION_STRING, emitStableDatabaseSemconv() ? null : url),
@@ -923,7 +924,7 @@ class JdbcInstrumentationTest {
                         .hasKind(SpanKind.CLIENT)
                         .hasParent(trace.getSpan(0))
                         .hasAttributesSatisfyingExactly(
-                            equalTo(DB_SYSTEM, system),
+                            equalTo(maybeStable(DB_SYSTEM), maybeStableDbSystemName(system)),
                             equalTo(maybeStable(DB_NAME), dbNameLower),
                             equalTo(DB_USER, emitStableDatabaseSemconv() ? null : username),
                             equalTo(DB_CONNECTION_STRING, emitStableDatabaseSemconv() ? null : url),
@@ -981,7 +982,7 @@ class JdbcInstrumentationTest {
         trace -> {
           List<Consumer<SpanDataAssert>> assertions =
               new ArrayList<>(
-                  Arrays.asList(
+                  asList(
                       span1 -> span1.hasName("parent").hasKind(SpanKind.INTERNAL).hasNoParent(),
                       span1 ->
                           span1
@@ -993,7 +994,7 @@ class JdbcInstrumentationTest {
                                       CodeIncubatingAttributes.CODE_NAMESPACE,
                                       datasource.getClass().getName()),
                                   equalTo(CodeIncubatingAttributes.CODE_FUNCTION, "getConnection"),
-                                  equalTo(DB_SYSTEM, system),
+                                  equalTo(maybeStable(DB_SYSTEM), maybeStableDbSystemName(system)),
                                   equalTo(DB_USER, emitStableDatabaseSemconv() ? null : user),
                                   equalTo(maybeStable(DB_NAME), "jdbcunittest"),
                                   equalTo(
@@ -1010,7 +1011,7 @@ class JdbcInstrumentationTest {
                                 CodeIncubatingAttributes.CODE_NAMESPACE,
                                 datasource.getClass().getName()),
                             equalTo(CodeIncubatingAttributes.CODE_FUNCTION, "getConnection"),
-                            equalTo(DB_SYSTEM, system),
+                            equalTo(maybeStable(DB_SYSTEM), maybeStableDbSystemName(system)),
                             equalTo(DB_USER, emitStableDatabaseSemconv() ? null : user),
                             equalTo(maybeStable(DB_NAME), "jdbcunittest"),
                             equalTo(
@@ -1048,7 +1049,7 @@ class JdbcInstrumentationTest {
                         .hasKind(SpanKind.CLIENT)
                         .hasParent(trace.getSpan(0))
                         .hasAttributesSatisfyingExactly(
-                            equalTo(DB_SYSTEM, "other_sql"),
+                            equalTo(maybeStable(DB_SYSTEM), "other_sql"),
                             equalTo(maybeStable(DB_STATEMENT), "testing ?"),
                             equalTo(
                                 DB_CONNECTION_STRING,
@@ -1131,7 +1132,7 @@ class JdbcInstrumentationTest {
                         .hasKind(SpanKind.CLIENT)
                         .hasParent(trace.getSpan(0))
                         .hasAttributesSatisfyingExactly(
-                            equalTo(DB_SYSTEM, "other_sql"),
+                            equalTo(maybeStable(DB_SYSTEM), "other_sql"),
                             equalTo(maybeStable(DB_NAME), databaseName),
                             equalTo(
                                 DB_CONNECTION_STRING,
@@ -1181,7 +1182,7 @@ class JdbcInstrumentationTest {
                     span.hasName("SELECT INFORMATION_SCHEMA.SYSTEM_USERS")
                         .hasKind(SpanKind.CLIENT)
                         .hasAttributesSatisfyingExactly(
-                            equalTo(DB_SYSTEM, "hsqldb"),
+                            equalTo(maybeStable(DB_SYSTEM), "hsqldb"),
                             equalTo(maybeStable(DB_NAME), dbNameLower),
                             equalTo(DB_USER, emitStableDatabaseSemconv() ? null : "SA"),
                             equalTo(
@@ -1255,7 +1256,7 @@ class JdbcInstrumentationTest {
                         .hasKind(SpanKind.CLIENT)
                         .hasParent(trace.getSpan(0))
                         .hasAttributesSatisfyingExactly(
-                            equalTo(DB_SYSTEM, "other_sql"),
+                            equalTo(maybeStable(DB_SYSTEM), "other_sql"),
                             equalTo(
                                 DB_CONNECTION_STRING,
                                 emitStableDatabaseSemconv() ? null : "testdb://localhost"),
@@ -1361,7 +1362,7 @@ class JdbcInstrumentationTest {
                         .hasKind(SpanKind.CLIENT)
                         .hasParent(trace.getSpan(0))
                         .hasAttributesSatisfyingExactly(
-                            equalTo(DB_SYSTEM, system),
+                            equalTo(maybeStable(DB_SYSTEM), maybeStableDbSystemName(system)),
                             equalTo(maybeStable(DB_NAME), dbNameLower),
                             equalTo(DB_USER, emitStableDatabaseSemconv() ? null : username),
                             equalTo(DB_CONNECTION_STRING, emitStableDatabaseSemconv() ? null : url),
@@ -1418,7 +1419,7 @@ class JdbcInstrumentationTest {
                         .hasKind(SpanKind.CLIENT)
                         .hasParent(trace.getSpan(0))
                         .hasAttributesSatisfyingExactly(
-                            equalTo(DB_SYSTEM, system),
+                            equalTo(maybeStable(DB_SYSTEM), maybeStableDbSystemName(system)),
                             equalTo(maybeStable(DB_NAME), dbNameLower),
                             equalTo(DB_USER, emitStableDatabaseSemconv() ? null : username),
                             equalTo(DB_CONNECTION_STRING, emitStableDatabaseSemconv() ? null : url),
@@ -1464,7 +1465,7 @@ class JdbcInstrumentationTest {
                         .hasKind(SpanKind.CLIENT)
                         .hasParent(trace.getSpan(0))
                         .hasAttributesSatisfyingExactly(
-                            equalTo(DB_SYSTEM, system),
+                            equalTo(maybeStable(DB_SYSTEM), maybeStableDbSystemName(system)),
                             equalTo(maybeStable(DB_NAME), dbNameLower),
                             equalTo(DB_USER, emitStableDatabaseSemconv() ? null : username),
                             equalTo(DB_CONNECTION_STRING, emitStableDatabaseSemconv() ? null : url),
@@ -1512,7 +1513,7 @@ class JdbcInstrumentationTest {
                         .hasKind(SpanKind.CLIENT)
                         .hasParent(trace.getSpan(0))
                         .hasAttributesSatisfyingExactly(
-                            equalTo(DB_SYSTEM, system),
+                            equalTo(maybeStable(DB_SYSTEM), maybeStableDbSystemName(system)),
                             equalTo(maybeStable(DB_NAME), dbNameLower),
                             equalTo(DB_USER, emitStableDatabaseSemconv() ? null : username),
                             equalTo(DB_CONNECTION_STRING, emitStableDatabaseSemconv() ? null : url),

@@ -93,6 +93,7 @@ public final class TracingExecutionInterceptor implements ExecutionInterceptor {
   private final Instrumenter<SqsReceiveRequest, Response> consumerReceiveInstrumenter;
   private final Instrumenter<SqsProcessRequest, Response> consumerProcessInstrumenter;
   private final Instrumenter<ExecutionAttributes, Response> producerInstrumenter;
+  private final Instrumenter<ExecutionAttributes, Response> dynamoDbInstrumenter;
   private static final String RPC_REQUEST_PAYLOAD = "rpc.request.payload";
   private static final String RPC_RESPONSE_PAYLOAD = "rpc.response.payload";
 
@@ -132,6 +133,7 @@ public final class TracingExecutionInterceptor implements ExecutionInterceptor {
       Instrumenter<SqsReceiveRequest, Response> consumerReceiveInstrumenter,
       Instrumenter<SqsProcessRequest, Response> consumerProcessInstrumenter,
       Instrumenter<ExecutionAttributes, Response> producerInstrumenter,
+      Instrumenter<ExecutionAttributes, Response> dynamoDbInstrumenter,
       boolean captureExperimentalSpanAttributes,
       TextMapPropagator messagingPropagator,
       boolean useXrayPropagator,
@@ -140,6 +142,7 @@ public final class TracingExecutionInterceptor implements ExecutionInterceptor {
     this.consumerReceiveInstrumenter = consumerReceiveInstrumenter;
     this.consumerProcessInstrumenter = consumerProcessInstrumenter;
     this.producerInstrumenter = producerInstrumenter;
+    this.dynamoDbInstrumenter = dynamoDbInstrumenter;
     this.captureExperimentalSpanAttributes = captureExperimentalSpanAttributes;
     this.messagingPropagator = messagingPropagator;
     this.useXrayPropagator = useXrayPropagator;
@@ -165,7 +168,10 @@ public final class TracingExecutionInterceptor implements ExecutionInterceptor {
     }
 
     executionAttributes.putAttribute(SDK_REQUEST_ATTRIBUTE, request);
-    Instrumenter<ExecutionAttributes, Response> instrumenter = getInstrumenter(request);
+    AwsSdkRequest awsSdkRequest = AwsSdkRequest.ofSdkRequest(request);
+    executionAttributes.putAttribute(AWS_SDK_REQUEST_ATTRIBUTE, awsSdkRequest);
+    Instrumenter<ExecutionAttributes, Response> instrumenter =
+        getInstrumenter(request, awsSdkRequest);
 
     if (!instrumenter.shouldStart(parentOtelContext, executionAttributes)) {
       // NB: We also skip injection in case we don't start.
@@ -218,7 +224,6 @@ public final class TracingExecutionInterceptor implements ExecutionInterceptor {
     Span span = Span.fromContext(otelContext);
 
     try {
-      AwsSdkRequest awsSdkRequest = AwsSdkRequest.ofSdkRequest(context.request());
       if (awsSdkRequest != null) {
         executionAttributes.putAttribute(AWS_SDK_REQUEST_ATTRIBUTE, awsSdkRequest);
         populateRequestAttributes(span, awsSdkRequest, context.request(), executionAttributes);
@@ -496,8 +501,15 @@ public final class TracingExecutionInterceptor implements ExecutionInterceptor {
     return attributes.getAttribute(PARENT_CONTEXT_ATTRIBUTE);
   }
 
-  private Instrumenter<ExecutionAttributes, Response> getInstrumenter(SdkRequest request) {
-    return SqsAccess.isSqsProducerRequest(request) ? producerInstrumenter : requestInstrumenter;
+  private Instrumenter<ExecutionAttributes, Response> getInstrumenter(
+      SdkRequest request, AwsSdkRequest awsSdkRequest) {
+    if (SqsAccess.isSqsProducerRequest(request)) {
+      return producerInstrumenter;
+    }
+    if (awsSdkRequest != null && awsSdkRequest.type() == DYNAMODB) {
+      return dynamoDbInstrumenter;
+    }
+    return requestInstrumenter;
   }
 
   private interface RequestSpanFinisher {
