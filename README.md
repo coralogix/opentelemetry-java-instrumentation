@@ -61,11 +61,18 @@ If you are looking for documentation on using those.
 ## Getting Started
 
 Download
-the [latest version](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.7.0/opentelemetry-javaagent.jar).
+the [latest version](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.8.0/opentelemetry-javaagent.jar).
 
 This package includes the instrumentation agent as well as
 instrumentations for all supported libraries and all available data exporters.
 The package provides a completely automatic, out-of-the-box experience.
+
+*Note: There are 2.x releases and 1.x releases. The 2.0 release included significant breaking
+changes, the details of which can be found in the [release notes](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/tag/v2.0.0).
+It is recommended to use the latest 2.x release which will have the latest features and improvements.
+1.x will receive security patches for a limited time and will not include other bug fixes and
+enhancements.*
+
 
 Enable the instrumentation agent using the `-javaagent` flag to the JVM.
 
@@ -154,7 +161,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Triagers ([@open-telemetry/java-instrumentation-triagers](https://github.com/orgs/open-telemetry/teams/java-instrumentation-triagers)):
 
-- [Jay DeLuca](https://github.com/jaydeluca)
 - [Jonas Kunz](https://github.com/JonasKunz), Elastic
 - [Steve Rao](https://github.com/steverao), Alibaba
 - [Sylvain Juge](https://github.com/SylvainJuge), Elastic
@@ -164,6 +170,7 @@ Approvers ([@open-telemetry/java-instrumentation-approvers](https://github.com/o
 - [Gregor Zietlinger](https://github.com/zeitlinger), Grafana
 - [Jack Berg](https://github.com/jack-berg), New Relic
 - [Jason Plumb](https://github.com/breedx-splk), Splunk
+- [Jay DeLuca](https://github.com/jaydeluca)
 - [Jean Bisutti](https://github.com/jeanbisutti), Microsoft
 - [John Watson](https://github.com/jkwatson), Verta.ai
 

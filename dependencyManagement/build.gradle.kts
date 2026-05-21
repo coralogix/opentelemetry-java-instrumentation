@@ -8,12 +8,12 @@ val dependencyVersions = hashMapOf<String, String>()
 rootProject.extra["versions"] = dependencyVersions
 
 // this line is managed by .github/scripts/update-sdk-version.sh
-val otelSdkVersion = "1.41.0"
-val otelContribVersion = "1.37.0-alpha"
+val otelSdkVersion = "1.42.1"
+val otelContribVersion = "1.38.0-alpha"
 val otelSdkAlphaVersion = otelSdkVersion.replaceFirst("(-SNAPSHOT)?$".toRegex(), "-alpha$1")
 
 // Need both BOM and groovy jars
-val groovyVersion = "4.0.22"
+val groovyVersion = "4.0.23"
 
 // We don't force libraries we instrument to new versions since we compile and test against specific
 // old baseline versions but we do try to force those libraries' transitive dependencies to new
@@ -28,8 +28,8 @@ val groovyVersion = "4.0.22"
 
 val DEPENDENCY_BOMS = listOf(
   "com.fasterxml.jackson:jackson-bom:2.17.2",
-  "com.squareup.okio:okio-bom:3.9.0", // see https://github.com/open-telemetry/opentelemetry-java/issues/5637
-  "com.google.guava:guava-bom:33.2.1-jre",
+  "com.squareup.okio:okio-bom:3.9.1", // see https://github.com/open-telemetry/opentelemetry-java/issues/5637
+  "com.google.guava:guava-bom:33.3.0-jre",
   "org.apache.groovy:groovy-bom:${groovyVersion}",
   "io.opentelemetry:opentelemetry-bom:${otelSdkVersion}",
   "io.opentelemetry:opentelemetry-bom-alpha:${otelSdkAlphaVersion}",
@@ -40,8 +40,8 @@ val DEPENDENCY_BOMS = listOf(
 
 val autoServiceVersion = "1.1.1"
 val autoValueVersion = "1.11.0"
-val errorProneVersion = "2.30.0"
-val byteBuddyVersion = "1.14.19"
+val errorProneVersion = "2.32.0"
+val byteBuddyVersion = "1.15.1"
 val asmVersion = "9.7"
 val jmhVersion = "1.37"
 val mockitoVersion = "4.11.0"
@@ -87,7 +87,7 @@ val DEPENDENCIES = listOf(
   "com.github.stefanbirkner:system-lambda:1.2.1",
   "com.github.stefanbirkner:system-rules:1.19.0",
   "uk.org.webcompere:system-stubs-jupiter:2.0.3",
-  "com.uber.nullaway:nullaway:0.11.1",
+  "com.uber.nullaway:nullaway:0.11.2",
   "commons-beanutils:commons-beanutils:1.9.4",
   "commons-cli:commons-cli:1.9.0",
   "commons-codec:commons-codec:1.17.1",
@@ -96,7 +96,7 @@ val DEPENDENCIES = listOf(
   "commons-fileupload:commons-fileupload:1.5",
   "commons-io:commons-io:2.16.1",
   "commons-lang:commons-lang:2.6",
-  "commons-logging:commons-logging:1.3.3",
+  "commons-logging:commons-logging:1.3.4",
   "commons-validator:commons-validator:1.9.0",
   "io.netty:netty:3.10.6.Final",
   "io.opentelemetry.contrib:opentelemetry-aws-resources:${otelContribVersion}",
