@@ -61,7 +61,7 @@ If you are looking for documentation on using those.
 ## Getting Started
 
 Download
-the [latest version](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.6.0/opentelemetry-javaagent.jar).
+the [latest version](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.7.0/opentelemetry-javaagent.jar).
 
 This package includes the instrumentation agent as well as
 instrumentations for all supported libraries and all available data exporters.
@@ -154,6 +154,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Triagers ([@open-telemetry/java-instrumentation-triagers](https://github.com/orgs/open-telemetry/teams/java-instrumentation-triagers)):
 
+- [Jay DeLuca](https://github.com/jaydeluca)
 - [Jonas Kunz](https://github.com/JonasKunz), Elastic
 - [Steve Rao](https://github.com/steverao), Alibaba
 - [Sylvain Juge](https://github.com/SylvainJuge), Elastic
@@ -178,7 +179,7 @@ Emeritus maintainers:
 - [Tyler Benson](https://github.com/tylerbenson)
 
 Learn more about roles in
-the [community repository](https://github.com/open-telemetry/community/blob/main/community-membership.md).
+the [community repository](https://github.com/open-telemetry/community/blob/main/guides/contributor/membership.md).
 
 Thanks to all the people who already contributed!
 
