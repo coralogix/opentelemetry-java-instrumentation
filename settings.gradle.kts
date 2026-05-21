@@ -1,19 +1,19 @@
 pluginManagement {
   plugins {
-    id("com.github.jk1.dependency-license-report") version "2.6"
+    id("com.github.jk1.dependency-license-report") version "2.7"
     id("com.google.cloud.tools.jib") version "3.4.2"
     id("com.gradle.plugin-publish") version "1.2.1"
     id("io.github.gradle-nexus.publish-plugin") version "2.0.0"
-    id("org.jetbrains.kotlin.jvm") version "1.9.23"
+    id("org.jetbrains.kotlin.jvm") version "1.9.24"
     id("org.xbib.gradle.plugin.jflex") version "3.0.2"
     id("org.unbroken-dome.xjc") version "2.0.0"
-    id("org.graalvm.buildtools.native") version "0.10.1"
+    id("org.graalvm.buildtools.native") version "0.10.2"
   }
 }
 
 plugins {
-  id("com.gradle.develocity") version "3.17.1"
-  id("com.gradle.common-custom-user-data-gradle-plugin") version "2.0"
+  id("com.gradle.develocity") version "3.17.4"
+  id("com.gradle.common-custom-user-data-gradle-plugin") version "2.0.1"
   id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
   // this can't live in pluginManagement currently due to
   // https://github.com/bmuschko/gradle-docker-plugin/issues/1123
@@ -138,7 +138,13 @@ include(":smoke-tests:images:servlet:servlet-3.0")
 include(":smoke-tests:images:servlet:servlet-5.0")
 include(":smoke-tests:images:spring-boot")
 
-include(":smoke-tests-otel-starter")
+include(":smoke-tests-otel-starter:spring-smoke-testing")
+include(":smoke-tests-otel-starter:spring-boot-2")
+include(":smoke-tests-otel-starter:spring-boot-3")
+include(":smoke-tests-otel-starter:spring-boot-common")
+include(":smoke-tests-otel-starter:spring-boot-reactive-2")
+include(":smoke-tests-otel-starter:spring-boot-reactive-3")
+include(":smoke-tests-otel-starter:spring-boot-reactive-common")
 
 include(":instrumentation:akka:akka-actor-2.3:javaagent")
 include(":instrumentation:akka:akka-actor-fork-join-2.5:javaagent")
@@ -159,9 +165,11 @@ include(":instrumentation:apache-httpclient:apache-httpclient-4.3:library")
 include(":instrumentation:apache-httpclient:apache-httpclient-4.3:testing")
 include(":instrumentation:apache-httpclient:apache-httpclient-5.0:javaagent")
 include(":instrumentation:apache-httpclient:apache-httpclient-5.2:library")
-include(":instrumentation:armeria-1.3:javaagent")
-include(":instrumentation:armeria-1.3:library")
-include(":instrumentation:armeria-1.3:testing")
+include(":instrumentation:apache-shenyu-2.4:javaagent")
+include(":instrumentation:armeria:armeria-1.3:javaagent")
+include(":instrumentation:armeria:armeria-1.3:library")
+include(":instrumentation:armeria:armeria-1.3:testing")
+include(":instrumentation:armeria:armeria-grpc-1.14:javaagent")
 include(":instrumentation:async-http-client:async-http-client-1.9:javaagent")
 include(":instrumentation:async-http-client:async-http-client-2.0:javaagent")
 include(":instrumentation:aws-lambda:aws-lambda-core-1.0:javaagent")
@@ -225,6 +233,7 @@ include(":instrumentation:elasticsearch:elasticsearch-transport-common:javaagent
 include(":instrumentation:elasticsearch:elasticsearch-transport-common:testing")
 include(":instrumentation:executors:bootstrap")
 include(":instrumentation:executors:javaagent")
+include(":instrumentation:executors:jdk21-testing")
 include(":instrumentation:executors:testing")
 include(":instrumentation:external-annotations:javaagent")
 include(":instrumentation:external-annotations:javaagent-unit-tests")
@@ -258,6 +267,7 @@ include(":instrumentation:hikaricp-3.0:library")
 include(":instrumentation:hikaricp-3.0:testing")
 include(":instrumentation:http-url-connection:javaagent")
 include(":instrumentation:hystrix-1.4:javaagent")
+include(":instrumentation:influxdb-2.4:javaagent")
 include(":instrumentation:internal:internal-application-logger:bootstrap")
 include(":instrumentation:internal:internal-application-logger:javaagent")
 include(":instrumentation:internal:internal-class-loader:javaagent")
@@ -353,7 +363,9 @@ include(":instrumentation:kafka:kafka-clients:kafka-clients-0.11:testing")
 include(":instrumentation:kafka:kafka-clients:kafka-clients-2.6:library")
 include(":instrumentation:kafka:kafka-clients:kafka-clients-common:library")
 include(":instrumentation:kafka:kafka-streams-0.11:javaagent")
-include(":instrumentation:kotlinx-coroutines:javaagent")
+include(":instrumentation:kotlinx-coroutines:kotlinx-coroutines-1.0:javaagent")
+include(":instrumentation:kotlinx-coroutines:kotlinx-coroutines-flow-1.3:javaagent")
+include(":instrumentation:kotlinx-coroutines:kotlinx-coroutines-flow-1.3:javaagent-kotlin")
 include(":instrumentation:ktor:ktor-1.0:library")
 include(":instrumentation:ktor:ktor-2.0:javaagent")
 include(":instrumentation:ktor:ktor-2.0:library")
@@ -418,6 +430,7 @@ include(":instrumentation:opentelemetry-api:opentelemetry-api-1.27:javaagent")
 include(":instrumentation:opentelemetry-api:opentelemetry-api-1.31:javaagent")
 include(":instrumentation:opentelemetry-api:opentelemetry-api-1.32:javaagent")
 include(":instrumentation:opentelemetry-api:opentelemetry-api-1.37:javaagent")
+include(":instrumentation:opentelemetry-api:opentelemetry-api-1.38:javaagent")
 include(":instrumentation:opentelemetry-extension-annotations-1.0:javaagent")
 include(":instrumentation:opentelemetry-extension-kotlin-1.0:javaagent")
 include(":instrumentation:opentelemetry-instrumentation-annotations-1.16:javaagent")
@@ -459,6 +472,7 @@ include(":instrumentation:ratpack:ratpack-1.7:library")
 include(":instrumentation:reactor:reactor-3.1:javaagent")
 include(":instrumentation:reactor:reactor-3.1:library")
 include(":instrumentation:reactor:reactor-3.1:testing")
+include(":instrumentation:reactor:reactor-3.4:javaagent")
 include(":instrumentation:reactor:reactor-kafka-1.0:javaagent")
 include(":instrumentation:reactor:reactor-kafka-1.0:testing")
 include(":instrumentation:reactor:reactor-netty:reactor-netty-0.9:javaagent")
@@ -513,6 +527,7 @@ include(":instrumentation:spark-2.3:javaagent")
 include(":instrumentation:spring:spring-batch-3.0:javaagent")
 include(":instrumentation:spring:spring-boot-actuator-autoconfigure-2.0:javaagent")
 include(":instrumentation:spring:spring-boot-autoconfigure")
+include(":instrumentation:spring:spring-boot-autoconfigure-3")
 include(":instrumentation:spring:spring-boot-resources:javaagent")
 include(":instrumentation:spring:spring-boot-resources:javaagent-unit-tests")
 include(":instrumentation:spring:spring-cloud-gateway:spring-cloud-gateway-2.0:javaagent")
@@ -526,6 +541,7 @@ include(":instrumentation:spring:spring-integration-4.1:javaagent")
 include(":instrumentation:spring:spring-integration-4.1:library")
 include(":instrumentation:spring:spring-integration-4.1:testing")
 include(":instrumentation:spring:spring-jms:spring-jms-2.0:javaagent")
+include(":instrumentation:spring:spring-jms:spring-jms-2.0:testing")
 include(":instrumentation:spring:spring-jms:spring-jms-6.0:javaagent")
 include(":instrumentation:spring:spring-kafka-2.7:javaagent")
 include(":instrumentation:spring:spring-kafka-2.7:library")

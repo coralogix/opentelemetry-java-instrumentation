@@ -12,7 +12,6 @@ import io.opentelemetry.instrumentation.api.instrumenter.SpanStatusBuilder;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Trigger;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerMismatchException;
-import io.opentelemetry.semconv.incubating.FaasIncubatingAttributes;
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,14 +22,13 @@ import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Trigg
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.HTTP_RESPONSE_BODY;
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.limitedPayload;
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.logException;
-import static io.opentelemetry.semconv.incubating.FaasIncubatingAttributes.FAAS_TRIGGER;
-
 /**
  * This class is internal and is hence not for public use. Its APIs are unstable and can change at
  * any time.
  */
 public final class ApiGatewayHttpTrigger extends Trigger {
 
+  private static final AttributeKey<String> FAAS_TRIGGER = AttributeKey.stringKey("faas.trigger");
   private static final AttributeKey<String> HTTP_METHOD = AttributeKey.stringKey("http.method");
   private static final AttributeKey<String> HTTP_ROUTE = AttributeKey.stringKey("http.route");
   private static final AttributeKey<String> HTTP_SCHEME = AttributeKey.stringKey("http.scheme");
@@ -83,7 +81,7 @@ public final class ApiGatewayHttpTrigger extends Trigger {
       RequestContext.Http http = requestContext.getHttp();
       Map<String, String> headers = lowercaseMap(req.getHeaders());
 
-      attributes.put(FAAS_TRIGGER, FaasIncubatingAttributes.FaasTriggerValues.HTTP);
+      attributes.put(FAAS_TRIGGER, "http");
       attributes.put(FAAS_TRIGGER_TYPE, "Api Gateway HTTP");
       attributes.put(HTTP_METHOD, http.getMethod());
       attributes.put(HTTP_ROUTE, getRoute(req)); // TODO nodejs doesn't do this

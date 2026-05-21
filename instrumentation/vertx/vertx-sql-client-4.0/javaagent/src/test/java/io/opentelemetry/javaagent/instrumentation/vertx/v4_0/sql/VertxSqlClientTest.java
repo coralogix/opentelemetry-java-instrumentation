@@ -66,6 +66,7 @@ class VertxSqlClientTest {
   private static GenericContainer<?> container;
   private static Vertx vertx;
   private static Pool pool;
+  private static String host;
   private static int port;
 
   @BeforeAll
@@ -80,11 +81,12 @@ class VertxSqlClientTest {
             .withStartupTimeout(Duration.ofMinutes(2));
     container.start();
     vertx = Vertx.vertx();
+    host = container.getHost();
     port = container.getMappedPort(5432);
     PgConnectOptions options =
         new PgConnectOptions()
             .setPort(port)
-            .setHost(container.getHost())
+            .setHost(host)
             .setDatabase(DB)
             .setUser(USER_DB)
             .setPassword(PW_DB);
@@ -140,7 +142,7 @@ class VertxSqlClientTest {
                             equalTo(DB_STATEMENT, "select * from test"),
                             equalTo(DB_OPERATION, "SELECT"),
                             equalTo(DB_SQL_TABLE, "test"),
-                            equalTo(SERVER_ADDRESS, "localhost"),
+                            equalTo(SERVER_ADDRESS, host),
                             equalTo(SERVER_PORT, port)),
                 span ->
                     span.hasName("callback")
@@ -194,7 +196,7 @@ class VertxSqlClientTest {
                             equalTo(DB_NAME, DB),
                             equalTo(DB_USER, USER_DB),
                             equalTo(DB_STATEMENT, "invalid"),
-                            equalTo(SERVER_ADDRESS, "localhost"),
+                            equalTo(SERVER_ADDRESS, host),
                             equalTo(SERVER_PORT, port)),
                 span ->
                     span.hasName("callback")
@@ -227,10 +229,10 @@ class VertxSqlClientTest {
                         .hasAttributesSatisfyingExactly(
                             equalTo(DB_NAME, DB),
                             equalTo(DB_USER, USER_DB),
-                            equalTo(DB_STATEMENT, "select * from test where id = $?"),
+                            equalTo(DB_STATEMENT, "select * from test where id = $1"),
                             equalTo(DB_OPERATION, "SELECT"),
                             equalTo(DB_SQL_TABLE, "test"),
-                            equalTo(SERVER_ADDRESS, "localhost"),
+                            equalTo(SERVER_ADDRESS, host),
                             equalTo(SERVER_PORT, port))));
   }
 
@@ -257,10 +259,10 @@ class VertxSqlClientTest {
                         .hasAttributesSatisfyingExactly(
                             equalTo(DB_NAME, DB),
                             equalTo(DB_USER, USER_DB),
-                            equalTo(DB_STATEMENT, "insert into test values ($?, $?) returning *"),
+                            equalTo(DB_STATEMENT, "insert into test values ($1, $2) returning *"),
                             equalTo(DB_OPERATION, "INSERT"),
                             equalTo(DB_SQL_TABLE, "test"),
-                            equalTo(SERVER_ADDRESS, "localhost"),
+                            equalTo(SERVER_ADDRESS, host),
                             equalTo(SERVER_PORT, port))));
   }
 
@@ -346,7 +348,7 @@ class VertxSqlClientTest {
                                 equalTo(DB_STATEMENT, "select * from test"),
                                 equalTo(DB_OPERATION, "SELECT"),
                                 equalTo(DB_SQL_TABLE, "test"),
-                                equalTo(SERVER_ADDRESS, "localhost"),
+                                equalTo(SERVER_ADDRESS, host),
                                 equalTo(SERVER_PORT, port)),
                     span ->
                         span.hasName("callback")
@@ -408,10 +410,10 @@ class VertxSqlClientTest {
                             .hasAttributesSatisfyingExactly(
                                 equalTo(DB_NAME, DB),
                                 equalTo(DB_USER, USER_DB),
-                                equalTo(DB_STATEMENT, "select * from test where id = $?"),
+                                equalTo(DB_STATEMENT, "select * from test where id = $1"),
                                 equalTo(DB_OPERATION, "SELECT"),
                                 equalTo(DB_SQL_TABLE, "test"),
-                                equalTo(SERVER_ADDRESS, "localhost"),
+                                equalTo(SERVER_ADDRESS, host),
                                 equalTo(SERVER_PORT, port)),
                     span ->
                         span.hasName("callback")

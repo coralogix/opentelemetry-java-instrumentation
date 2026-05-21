@@ -3,6 +3,7 @@ package io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent.SQSMessage;
 import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
@@ -16,8 +17,6 @@ import io.opentelemetry.instrumentation.api.instrumenter.SpanStatusBuilder;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Trigger;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerMismatchException;
-import io.opentelemetry.semconv.incubating.FaasIncubatingAttributes;
-import io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -29,13 +28,19 @@ import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Trigg
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.RPC_REQUEST_PAYLOAD;
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.limitedPayload;
 import static io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerUtils.logException;
-import static io.opentelemetry.semconv.incubating.FaasIncubatingAttributes.FAAS_TRIGGER;
-
 /**
  * This class is internal and is hence not for public use. Its APIs are unstable and can change at
  * any time.
  */
 public final class SqsTrigger extends Trigger {
+
+  private static final AttributeKey<String> FAAS_TRIGGER = AttributeKey.stringKey("faas.trigger");
+  private static final AttributeKey<String> MESSAGING_DESTINATION_NAME =
+      AttributeKey.stringKey("messaging.destination.name");
+  private static final AttributeKey<String> MESSAGING_OPERATION =
+      AttributeKey.stringKey("messaging.operation");
+  private static final AttributeKey<String> MESSAGING_SYSTEM =
+      AttributeKey.stringKey("messaging.system");
 
   @Override
   public boolean matches(AwsLambdaRequest request) {
@@ -112,14 +117,14 @@ public final class SqsTrigger extends Trigger {
     try {
       SQSEvent event = requireCorrectEventType(request);
 
-      attributes.put(FAAS_TRIGGER, FaasIncubatingAttributes.FaasTriggerValues.PUBSUB);
+      attributes.put(FAAS_TRIGGER, "pubsub");
       attributes.put(FAAS_TRIGGER_TYPE, "SQS");
-      attributes.put(MessagingIncubatingAttributes.MESSAGING_SYSTEM, "AmazonSQS");
-      attributes.put(MessagingIncubatingAttributes.MESSAGING_OPERATION, "deliver");
+      attributes.put(MESSAGING_SYSTEM, "AmazonSQS");
+      attributes.put(MESSAGING_OPERATION, "deliver");
 
       Optional<String> destination = commonDestination(event);
       if (destination.isPresent()) {
-        attributes.put(MessagingIncubatingAttributes.MESSAGING_DESTINATION_NAME, destination.get());
+        attributes.put(MESSAGING_DESTINATION_NAME, destination.get());
       }
 
       List<SQSMessage> messages = event.getRecords();

@@ -9,7 +9,6 @@ import com.mongodb.ServerAddress;
 import com.mongodb.connection.ConnectionDescription;
 import com.mongodb.event.CommandStartedEvent;
 import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientAttributesGetter;
-import io.opentelemetry.semconv.incubating.DbIncubatingAttributes;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -25,6 +24,9 @@ import org.bson.json.JsonWriter;
 import org.bson.json.JsonWriterSettings;
 
 class MongoDbAttributesGetter implements DbClientAttributesGetter<CommandStartedEvent> {
+
+  // copied from DbIncubatingAttributes.DbSystemValues
+  private static final String MONGODB = "mongodb";
 
   @Nullable private static final Method IS_TRUNCATED_METHOD;
   private static final String HIDDEN_CHAR = "?";
@@ -49,7 +51,7 @@ class MongoDbAttributesGetter implements DbClientAttributesGetter<CommandStarted
 
   @Override
   public String getSystem(CommandStartedEvent event) {
-    return DbIncubatingAttributes.DbSystemValues.MONGODB;
+    return MONGODB;
   }
 
   @Override
