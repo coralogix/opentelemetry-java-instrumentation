@@ -46,6 +46,7 @@ dependencies {
   implementation("io.opentelemetry.contrib:opentelemetry-gcp-resources")
   implementation("io.opentelemetry.contrib:opentelemetry-cloudfoundry-resources")
   implementation("io.opentelemetry.contrib:opentelemetry-baggage-processor")
+  implementation("io.opentelemetry.contrib:opentelemetry-samplers")
 
   api("net.bytebuddy:byte-buddy-dep")
   implementation("org.ow2.asm:asm-tree")
@@ -110,6 +111,14 @@ testing {
 
         // Used by byte-buddy but not brought in as a transitive dependency.
         compileOnly("com.google.code.findbugs:annotations")
+      }
+    }
+
+    val testConfigFile by registering(JvmTestSuite::class) {
+      dependencies {
+        implementation(project(":javaagent-tooling"))
+        // requires mockito-inline
+        implementation("uk.org.webcompere:system-stubs-jupiter")
       }
     }
   }

@@ -31,6 +31,7 @@ dependencies {
   testLibrary("org.apache.tomcat:tomcat-juli:7.0.19")
   testLibrary("com.zaxxer:HikariCP:2.4.0")
   testLibrary("com.mchange:c3p0:0.9.5")
+  testLibrary("com.alibaba:druid:1.2.20")
 
   // some classes in earlier versions of derby were split out into derbytools in later versions
   latestDepTestLibrary("org.apache.derby:derbytools:latest.release")
@@ -65,12 +66,21 @@ tasks {
     include("**/SlickTest.*")
   }
 
+  val testSqlCommenter by registering(Test::class) {
+    filter {
+      includeTestsMatching("SqlCommenterTest")
+    }
+    include("**/SqlCommenterTest.*")
+    jvmArgs("-Dotel.instrumentation.jdbc.experimental.sqlcommenter.enabled=true")
+  }
+
   val testStableSemconv by registering(Test::class) {
     testClassesDirs = sourceSets.test.get().output.classesDirs
     classpath = sourceSets.test.get().runtimeClasspath
 
     filter {
       excludeTestsMatching("SlickTest")
+      excludeTestsMatching("SqlCommenterTest")
       excludeTestsMatching("PreparedStatementParametersTest")
     }
     jvmArgs("-Dotel.instrumentation.jdbc-datasource.enabled=true")
@@ -101,13 +111,18 @@ tasks {
   test {
     filter {
       excludeTestsMatching("SlickTest")
+      excludeTestsMatching("SqlCommenterTest")
       excludeTestsMatching("PreparedStatementParametersTest")
     }
     jvmArgs("-Dotel.instrumentation.jdbc-datasource.enabled=true")
   }
 
   check {
-    dependsOn(testSlick, testStableSemconv, testSlickStableSemconv, testCaptureParameters)
+    dependsOn(testSlick)
+    dependsOn(testSqlCommenter)
+    dependsOn(testStableSemconv)
+    dependsOn(testSlickStableSemconv)
+    dependsOn(testCaptureParameters)
   }
 }
 

@@ -7,14 +7,14 @@ pluginManagement {
     id("org.jetbrains.kotlin.jvm") version "2.2.20"
     id("org.xbib.gradle.plugin.jflex") version "3.0.2"
     id("com.github.bjornvester.xjc") version "1.8.2"
-    id("org.graalvm.buildtools.native") version "0.11.0"
+    id("org.graalvm.buildtools.native") version "0.11.2"
     id("com.google.osdetector") version "1.7.3"
     id("com.google.protobuf") version "0.9.5"
   }
 }
 
 plugins {
-  id("com.gradle.common-custom-user-data-gradle-plugin") version "2.3"
+  id("com.gradle.common-custom-user-data-gradle-plugin") version "2.4.0"
   id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
   // this can't live in pluginManagement currently due to
   // https://github.com/bmuschko/gradle-docker-plugin/issues/1123
@@ -22,7 +22,7 @@ plugins {
   // ./gradlew :smoke-tests:images:servlet:buildLinuxTestImages pushMatrix -PsmokeTestServer=jetty
   // ./gradlew :smoke-tests:images:servlet:buildWindowsTestImages pushMatrix -PsmokeTestServer=jetty
   id("com.bmuschko.docker-remote-api") version "9.4.0" apply false
-  id("com.gradle.develocity") version "4.1.1"
+  id("com.gradle.develocity") version "4.2.2"
 }
 
 dependencyResolutionManagement {
@@ -102,9 +102,7 @@ include(":instrumentation-docs")
 include(":test-report")
 include(":testing:agent-exporter")
 include(":testing:agent-for-testing")
-include(":testing:armeria-shaded-for-testing")
-include(":testing:proto-shaded-for-testing")
-include(":testing:wiremock-shaded-for-testing")
+include(":testing:dependencies-shaded-for-testing")
 include(":testing-common")
 include(":testing-common:integration-tests")
 include(":testing-common:library-for-integration-tests")
@@ -230,6 +228,7 @@ include(":instrumentation:executors:jdk21-testing")
 include(":instrumentation:executors:testing")
 include(":instrumentation:external-annotations:javaagent")
 include(":instrumentation:external-annotations:javaagent-unit-tests")
+include(":instrumentation:failsafe-3.0:library")
 include(":instrumentation:finagle-http-23.11:javaagent")
 include(":instrumentation:finatra-2.9:javaagent")
 include(":instrumentation:geode-1.4:javaagent")
@@ -248,6 +247,9 @@ include(":instrumentation:grpc-1.6:testing")
 include(":instrumentation:guava-10.0:javaagent")
 include(":instrumentation:guava-10.0:library")
 include(":instrumentation:gwt-2.0:javaagent")
+include(":instrumentation:helidon-4.3:javaagent")
+include(":instrumentation:helidon-4.3:library")
+include(":instrumentation:helidon-4.3:testing")
 include(":instrumentation:hibernate:hibernate-3.3:javaagent")
 include(":instrumentation:hibernate:hibernate-4.0:javaagent")
 include(":instrumentation:hibernate:hibernate-6.0:javaagent")
@@ -308,7 +310,6 @@ include(":instrumentation:jaxrs-client:jaxrs-client-2.0-testing")
 include(":instrumentation:jaxws:jaxws-2.0:javaagent")
 include(":instrumentation:jaxws:jaxws-2.0-arquillian-testing")
 include(":instrumentation:jaxws:jaxws-2.0-axis2-1.6:javaagent")
-include(":instrumentation:jaxws:jaxws-2.0-axis2-1.6-testing")
 include(":instrumentation:jaxws:jaxws-2.0-common-testing")
 include(":instrumentation:jaxws:jaxws-2.0-metro-2.2-testing")
 include(":instrumentation:jaxws:jaxws-2.0-tomee-testing")
@@ -367,6 +368,8 @@ include(":instrumentation:kafka:kafka-clients:kafka-clients-0.11:javaagent")
 include(":instrumentation:kafka:kafka-clients:kafka-clients-0.11:testing")
 include(":instrumentation:kafka:kafka-clients:kafka-clients-2.6:library")
 include(":instrumentation:kafka:kafka-clients:kafka-clients-common-0.11:library")
+include(":instrumentation:kafka:kafka-connect-2.6:javaagent")
+include(":instrumentation:kafka:kafka-connect-2.6:testing")
 include(":instrumentation:kafka:kafka-streams-0.11:javaagent")
 include(":instrumentation:kotlinx-coroutines:kotlinx-coroutines-1.0:javaagent")
 include(":instrumentation:kotlinx-coroutines:kotlinx-coroutines-flow-1.3:javaagent")
@@ -394,6 +397,7 @@ include(":instrumentation:liberty:liberty-dispatcher-20.0:javaagent")
 include(":instrumentation:log4j:log4j-appender-1.2:javaagent")
 include(":instrumentation:log4j:log4j-appender-2.17:javaagent")
 include(":instrumentation:log4j:log4j-appender-2.17:library")
+include(":instrumentation:log4j:log4j-appender-2.17:testing")
 include(":instrumentation:log4j:log4j-context-data:log4j-context-data-2.7:javaagent")
 include(":instrumentation:log4j:log4j-context-data:log4j-context-data-2.17:javaagent")
 include(":instrumentation:log4j:log4j-context-data:log4j-context-data-2.17:library-autoconfigure")
@@ -416,6 +420,9 @@ include(":instrumentation:mongo:mongo-4.0:javaagent")
 include(":instrumentation:mongo:mongo-async-3.3:javaagent")
 include(":instrumentation:mongo:mongo-common:testing")
 include(":instrumentation:mybatis-3.2:javaagent")
+include(":instrumentation:nats:nats-2.17:javaagent")
+include(":instrumentation:nats:nats-2.17:library")
+include(":instrumentation:nats:nats-2.17:testing")
 include(":instrumentation:netty:netty-3.8:javaagent")
 include(":instrumentation:netty:netty-4.0:javaagent")
 include(":instrumentation:netty:netty-4.1:javaagent")
@@ -433,6 +440,7 @@ include(":instrumentation:openai:openai-java-1.1:library")
 include(":instrumentation:openai:openai-java-1.1:testing")
 include(":instrumentation:openai:openai-java-1.1:openai3-testing")
 include(":instrumentation:opencensus-shim:testing")
+include(":instrumentation:opensearch:opensearch-java-3.0:javaagent")
 include(":instrumentation:opensearch:opensearch-rest-1.0:javaagent")
 include(":instrumentation:opensearch:opensearch-rest-3.0:javaagent")
 include(":instrumentation:opensearch:opensearch-rest-common:javaagent")

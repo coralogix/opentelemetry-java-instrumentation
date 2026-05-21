@@ -2,12 +2,17 @@
 # The structure and contents are a work in progress and subject to change.
 # For more information see: https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/13468
 
+file_format: 0.1
+
 libraries:
   activej:
   - name: activej-http-6.0
     display_name: ActiveJ
     description: This instrumentation enables HTTP server spans and HTTP server metrics
       for the ActiveJ HTTP server.
+    semantic_conventions:
+    - HTTP_SERVER_SPANS
+    - HTTP_SERVER_METRICS
     library_link: https://activej.io/
     source_path: instrumentation/activej-http-6.0
     minimum_java_version: 17
@@ -16,6 +21,25 @@ libraries:
     target_versions:
       javaagent:
       - io.activej:activej-http:[6.0,)
+    configurations:
+    - name: otel.instrumentation.http.known-methods
+      description: |
+        Configures the instrumentation to recognize an alternative set of HTTP request methods. All other methods will be treated as `_OTHER`.
+      type: list
+      default: CONNECT,DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT,TRACE
+    - name: otel.instrumentation.http.server.capture-request-headers
+      description: List of HTTP request headers to capture in HTTP server telemetry.
+      type: list
+      default: ''
+    - name: otel.instrumentation.http.server.capture-response-headers
+      description: List of HTTP response headers to capture in HTTP server telemetry.
+      type: list
+      default: ''
+    - name: otel.instrumentation.http.server.emit-experimental-telemetry
+      description: |
+        Enable the capture of experimental HTTP server telemetry. Adds the `http.request.body.size` and `http.response.body.size` attributes to spans, and records `http.server.request.size` and `http.server.response.size` metrics.
+      type: boolean
+      default: false
     telemetry:
     - when: default
       metrics:
@@ -65,6 +89,8 @@ libraries:
     description: This instrumentation provides context propagation for Akka actors,
       it does not emit any telemetry on its own.
     library_link: https://doc.akka.io/libraries/akka-core/current/typed/index.html
+    features:
+    - CONTEXT_PROPAGATION
     source_path: instrumentation/akka/akka-actor-2.3
     scope:
       name: io.opentelemetry.akka-actor-2.3
@@ -78,6 +104,8 @@ libraries:
     description: This instrumentation provides context propagation for the Akka Fork-Join
       Pool, it does not emit any telemetry on its own.
     library_link: https://doc.akka.io/libraries/akka-core/current/typed/index.html
+    features:
+    - CONTEXT_PROPAGATION
     source_path: instrumentation/akka/akka-actor-fork-join-2.5
     scope:
       name: io.opentelemetry.akka-actor-fork-join-2.5
@@ -90,7 +118,15 @@ libraries:
     display_name: Akka HTTP
     description: |
       This instrumentation enables HTTP client spans and metrics for the Akka HTTP client, and HTTP server spans and metrics for the Akka HTTP server.
+    semantic_conventions:
+    - HTTP_CLIENT_SPANS
+    - HTTP_CLIENT_METRICS
+    - HTTP_SERVER_SPANS
+    - HTTP_SERVER_METRICS
     library_link: https://doc.akka.io/docs/akka-http/current/index.html
+    features:
+    - HTTP_ROUTE
+    - CONTEXT_PROPAGATION
     source_path: instrumentation/akka/akka-http-10.0
     scope:
       name: io.opentelemetry.akka-http-10.0
@@ -99,6 +135,47 @@ libraries:
       - com.typesafe.akka:akka-http_2.12:[10,)
       - com.typesafe.akka:akka-http_2.13:[10,)
       - com.typesafe.akka:akka-http_2.11:[10,)
+    configurations:
+    - name: otel.instrumentation.http.known-methods
+      description: |
+        Configures the instrumentation to recognize an alternative set of HTTP request methods. All other methods will be treated as `_OTHER`.
+      type: list
+      default: CONNECT,DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT,TRACE
+    - name: otel.instrumentation.http.client.capture-request-headers
+      description: List of HTTP request headers to capture in HTTP client telemetry.
+      type: list
+      default: ''
+    - name: otel.instrumentation.http.client.capture-response-headers
+      description: List of HTTP response headers to capture in HTTP client telemetry.
+      type: list
+      default: ''
+    - name: otel.instrumentation.common.peer-service-mapping
+      description: Used to specify a mapping from host names or IP addresses to peer
+        services.
+      type: map
+      default: ''
+    - name: otel.instrumentation.http.client.emit-experimental-telemetry
+      description: |
+        Enable the capture of experimental HTTP client telemetry. Adds the `http.request.body.size` and `http.response.body.size` attributes to spans, and records `http.client.request.size` and `http.client.response.size` metrics.
+      type: boolean
+      default: false
+    - name: otel.instrumentation.http.client.experimental.redact-query-parameters
+      description: Redact sensitive URL parameters. See https://opentelemetry.io/docs/specs/semconv/http/http-spans.
+      type: boolean
+      default: true
+    - name: otel.instrumentation.http.server.capture-request-headers
+      description: List of HTTP request headers to capture in HTTP server telemetry.
+      type: list
+      default: ''
+    - name: otel.instrumentation.http.server.capture-response-headers
+      description: List of HTTP response headers to capture in HTTP server telemetry.
+      type: list
+      default: ''
+    - name: otel.instrumentation.http.server.emit-experimental-telemetry
+      description: |
+        Enable the capture of experimental HTTP server telemetry. Adds the `http.request.body.size` and `http.response.body.size` attributes to spans, and records `http.server.request.size` and `http.server.response.size` metrics.
+      type: boolean
+      default: false
     telemetry:
     - when: default
       metrics:
@@ -179,6 +256,8 @@ libraries:
   - name: alibaba-druid-1.0
     description: |
       The Alibaba Druid instrumentation generates database connection pool metrics for druid data sources.
+    semantic_conventions:
+    - DATABASE_POOL_METRICS
     library_link: https://github.com/alibaba/druid
     source_path: instrumentation/alibaba-druid-1.0
     scope:
@@ -188,6 +267,12 @@ libraries:
       - com.alibaba:druid:(,)
       library:
       - com.alibaba:druid:1.0.0
+    configurations:
+    - name: otel.semconv-stability.opt-in
+      description: |
+        Opt-in to emit stable semantic conventions instead of the old experimental semantic conventions. Accepts a comma-separated list of semantic convention groups (e.g., `database`, `http`, `messaging`). Use `<group>/dup` to emit both old and new conventions simultaneously. Stable semantic conventions will become the default in version 3.0 of the agent.
+      type: list
+      default: ''
     telemetry:
     - when: default
       metrics:
@@ -272,9 +357,12 @@ libraries:
           type: STRING
   apache:
   - name: apache-dbcp-2.0
+    display_name: Apache DBCP
     description: |
       This instrumentation enables database connection pools metrics for Apache DBCP.
       The instrumentation uses `MBeanRegistration` methods for lifecycle detection, therefore it only activates if the `BasicDataSource` is registered to an `MBeanServer`. If using Spring Boot, this happens automatically as all Spring beans that support JMX registration are automatically registered by default.
+    semantic_conventions:
+    - DATABASE_POOL_METRICS
     library_link: https://commons.apache.org/proper/commons-dbcp/
     source_path: instrumentation/apache-dbcp-2.0
     scope:
@@ -284,6 +372,12 @@ libraries:
       - org.apache.commons:commons-dbcp2:[2,)
       library:
       - org.apache.commons:commons-dbcp2:2.0
+    configurations:
+    - name: otel.semconv-stability.opt-in
+      description: |
+        Opt-in to emit stable semantic conventions instead of the old experimental semantic conventions. Accepts a comma-separated list of semantic convention groups (e.g., `database`, `http`, `messaging`). Use `<group>/dup` to emit both old and new conventions simultaneously. Stable semantic conventions will become the default in version 3.0 of the agent.
+      type: list
+      default: ''
     telemetry:
     - when: default
       metrics:
@@ -352,10 +446,14 @@ libraries:
         - name: db.client.connection.pool.name
           type: STRING
   - name: apache-dubbo-2.7
-    description: The Apache Dubbo instrumentation provides RPC client spans and RPC
-      server spans for Apache Dubbo RPC calls. Each call produces a span named after
-      the Dubbo method, enriched with standard RPC attributes (system, service, method),
-      network attributes, and error details if an exception occurs.
+    display_name: Apache Dubbo
+    description: |
+      The Apache Dubbo instrumentation provides RPC client spans and metrics, and RPC server spans and metrics for Apache Dubbo RPC calls.
+    semantic_conventions:
+    - RPC_CLIENT_SPANS
+    - RPC_CLIENT_METRICS
+    - RPC_SERVER_SPANS
+    - RPC_SERVER_METRICS
     library_link: https://github.com/apache/dubbo/
     source_path: instrumentation/apache-dubbo-2.7
     scope:
@@ -371,6 +469,33 @@ libraries:
       default: ''
     telemetry:
     - when: default
+      metrics:
+      - name: rpc.client.duration
+        description: The duration of an outbound RPC invocation.
+        type: HISTOGRAM
+        unit: ms
+        attributes:
+        - name: rpc.method
+          type: STRING
+        - name: rpc.service
+          type: STRING
+        - name: rpc.system
+          type: STRING
+        - name: server.address
+          type: STRING
+        - name: server.port
+          type: LONG
+      - name: rpc.server.duration
+        description: The duration of an inbound RPC invocation.
+        type: HISTOGRAM
+        unit: ms
+        attributes:
+        - name: rpc.method
+          type: STRING
+        - name: rpc.service
+          type: STRING
+        - name: rpc.system
+          type: STRING
       spans:
       - span_kind: CLIENT
         attributes:
@@ -397,8 +522,12 @@ libraries:
         - name: rpc.system
           type: STRING
   - name: apache-httpasyncclient-4.1
+    display_name: Apache HttpAsyncClient
     description: This instrumentation enables HTTP client spans and HTTP client metrics
       for the Apache HttpAsyncClient.
+    semantic_conventions:
+    - HTTP_CLIENT_SPANS
+    - HTTP_CLIENT_METRICS
     library_link: https://hc.apache.org/index.html
     source_path: instrumentation/apache-httpasyncclient-4.1
     scope:
@@ -406,6 +535,34 @@ libraries:
     target_versions:
       javaagent:
       - org.apache.httpcomponents:httpasyncclient:[4.1,)
+    configurations:
+    - name: otel.instrumentation.http.known-methods
+      description: |
+        Configures the instrumentation to recognize an alternative set of HTTP request methods. All other methods will be treated as `_OTHER`.
+      type: list
+      default: CONNECT,DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT,TRACE
+    - name: otel.instrumentation.http.client.capture-request-headers
+      description: List of HTTP request headers to capture in HTTP client telemetry.
+      type: list
+      default: ''
+    - name: otel.instrumentation.http.client.capture-response-headers
+      description: List of HTTP response headers to capture in HTTP client telemetry.
+      type: list
+      default: ''
+    - name: otel.instrumentation.common.peer-service-mapping
+      description: Used to specify a mapping from host names or IP addresses to peer
+        services.
+      type: map
+      default: ''
+    - name: otel.instrumentation.http.client.emit-experimental-telemetry
+      description: |
+        Enable the capture of experimental HTTP client telemetry. Adds the `http.request.body.size` and `http.response.body.size` attributes to spans, and records `http.client.request.size` and `http.client.response.size` metrics.
+      type: boolean
+      default: false
+    - name: otel.instrumentation.http.client.experimental.redact-query-parameters
+      description: Redact sensitive URL parameters. See https://opentelemetry.io/docs/specs/semconv/http/http-spans.
+      type: boolean
+      default: true
     telemetry:
     - when: default
       metrics:
@@ -444,8 +601,12 @@ libraries:
         - name: url.full
           type: STRING
   - name: apache-httpclient-2.0
+    display_name: Apache HttpClient
     description: This instrumentation enables HTTP client spans and HTTP client metrics
       for versions 2 and 3 of the Apache HttpClient.
+    semantic_conventions:
+    - HTTP_CLIENT_SPANS
+    - HTTP_CLIENT_METRICS
     library_link: https://hc.apache.org/index.html
     source_path: instrumentation/apache-httpclient/apache-httpclient-2.0
     scope:
@@ -453,6 +614,34 @@ libraries:
     target_versions:
       javaagent:
       - commons-httpclient:commons-httpclient:[2.0,4.0)
+    configurations:
+    - name: otel.instrumentation.http.known-methods
+      description: |
+        Configures the instrumentation to recognize an alternative set of HTTP request methods. All other methods will be treated as `_OTHER`.
+      type: list
+      default: CONNECT,DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT,TRACE
+    - name: otel.instrumentation.http.client.capture-request-headers
+      description: List of HTTP request headers to capture in HTTP client telemetry.
+      type: list
+      default: ''
+    - name: otel.instrumentation.http.client.capture-response-headers
+      description: List of HTTP response headers to capture in HTTP client telemetry.
+      type: list
+      default: ''
+    - name: otel.instrumentation.common.peer-service-mapping
+      description: Used to specify a mapping from host names or IP addresses to peer
+        services.
+      type: map
+      default: ''
+    - name: otel.instrumentation.http.client.emit-experimental-telemetry
+      description: |
+        Enable the capture of experimental HTTP client telemetry. Adds the `http.request.body.size` and `http.response.body.size` attributes to spans, and records `http.client.request.size` and `http.client.response.size` metrics.
+      type: boolean
+      default: false
+    - name: otel.instrumentation.http.client.experimental.redact-query-parameters
+      description: Redact sensitive URL parameters. See https://opentelemetry.io/docs/specs/semconv/http/http-spans.
+      type: boolean
+      default: true
     telemetry:
     - when: default
       metrics:
@@ -489,8 +678,12 @@ libraries:
         - name: url.full
           type: STRING
   - name: apache-httpclient-4.0
+    display_name: Apache HttpClient
     description: This instrumentation enables HTTP client spans and HTTP client metrics
       for version 4 of the Apache HttpClient.
+    semantic_conventions:
+    - HTTP_CLIENT_SPANS
+    - HTTP_CLIENT_METRICS
     library_link: https://hc.apache.org/index.html
     source_path: instrumentation/apache-httpclient/apache-httpclient-4.0
     scope:
@@ -499,6 +692,34 @@ libraries:
       javaagent:
       - io.dropwizard:dropwizard-client:(,3.0.0)
       - org.apache.httpcomponents:httpclient:[4.0,)
+    configurations:
+    - name: otel.instrumentation.http.known-methods
+      description: |
+        Configures the instrumentation to recognize an alternative set of HTTP request methods. All other methods will be treated as `_OTHER`.
+      type: list
+      default: CONNECT,DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT,TRACE
+    - name: otel.instrumentation.http.client.capture-request-headers
+      description: List of HTTP request headers to capture in HTTP client telemetry.
+      type: list
+      default: ''
+    - name: otel.instrumentation.http.client.capture-response-headers
+      description: List of HTTP response headers to capture in HTTP client telemetry.
+      type: list
+      default: ''
+    - name: otel.instrumentation.common.peer-service-mapping
+      description: Used to specify a mapping from host names or IP addresses to peer
+        services.
+      type: map
+      default: ''
+    - name: otel.instrumentation.http.client.emit-experimental-telemetry
+      description: |
+        Enable the capture of experimental HTTP client telemetry. Adds the `http.request.body.size` and `http.response.body.size` attributes to spans, and records `http.client.request.size` and `http.client.response.size` metrics.
+      type: boolean
+      default: false
+    - name: otel.instrumentation.http.client.experimental.redact-query-parameters
+      description: Redact sensitive URL parameters. See https://opentelemetry.io/docs/specs/semconv/http/http-spans.
+      type: boolean
+      default: true
     telemetry:
     - when: default
       metrics:
@@ -537,8 +758,12 @@ libraries:
         - name: url.full
           type: STRING
   - name: apache-httpclient-4.3
+    display_name: Apache HttpClient
     description: This instrumentation provides a library integration that enables
       HTTP client spans and HTTP client metrics for the Apache HttpClient.
+    semantic_conventions:
+    - HTTP_CLIENT_SPANS
+    - HTTP_CLIENT_METRICS
     library_link: https://hc.apache.org/index.html
     source_path: instrumentation/apache-httpclient/apache-httpclient-4.3
     scope:
@@ -586,8 +811,12 @@ libraries:
         - name: url.full
           type: STRING
   - name: apache-httpclient-5.0
+    display_name: Apache HttpClient
     description: This instrumentation enables HTTP client spans and HTTP client metrics
       for version 5 of the Apache HttpClient.
+    semantic_conventions:
+    - HTTP_CLIENT_SPANS
+    - HTTP_CLIENT_METRICS
     library_link: https://hc.apache.org/index.html
     source_path: instrumentation/apache-httpclient/apache-httpclient-5.0
     scope:
@@ -595,6 +824,34 @@ libraries:
     target_versions:
       javaagent:
       - org.apache.httpcomponents.client5:httpclient5:[5.0,)
+    configurations:
+    - name: otel.instrumentation.http.known-methods
+      description: |
+        Configures the instrumentation to recognize an alternative set of HTTP request methods. All other methods will be treated as `_OTHER`.
+      type: list
+      default: CONNECT,DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT,TRACE
+    - name: otel.instrumentation.http.client.capture-request-headers
+      description: List of HTTP request headers to capture in HTTP client telemetry.
+      type: list
+      default: ''
+    - name: otel.instrumentation.http.client.capture-response-headers
+      description: List of HTTP response headers to capture in HTTP client telemetry.
+      type: list
+      default: ''
+    - name: otel.instrumentation.common.peer-service-mapping
+      description: Used to specify a mapping from host names or IP addresses to peer
+        services.
+      type: map
+      default: ''
+    - name: otel.instrumentation.http.client.emit-experimental-telemetry
+      description: |
+        Enable the capture of experimental HTTP client telemetry. Adds the `http.request.body.size` and `http.response.body.size` attributes to spans, and records `http.client.request.size` and `http.client.response.size` metrics.
+      type: boolean
+      default: false
+    - name: otel.instrumentation.http.client.experimental.redact-query-parameters
+      description: Redact sensitive URL parameters. See https://opentelemetry.io/docs/specs/semconv/http/http-spans.
+      type: boolean
+      default: true
     telemetry:
     - when: default
       metrics:
@@ -633,8 +890,12 @@ libraries:
         - name: url.full
           type: STRING
   - name: apache-httpclient-5.2
+    display_name: Apache HttpClient
     description: This instrumentation provides a library integration that enables
       HTTP client spans and HTTP client metrics for the Apache HttpClient.
+    semantic_conventions:
+    - HTTP_CLIENT_SPANS
+    - HTTP_CLIENT_METRICS
     library_link: https://hc.apache.org/index.html
     source_path: instrumentation/apache-httpclient/apache-httpclient-5.2
     scope:
@@ -685,6 +946,8 @@ libraries:
     description: |
       This instrumentation does not emit telemetry on its own. Instead, it augments existing HTTP server spans and HTTP server metrics with the HTTP route and Shenyu specific attributes.
     library_link: https://shenyu.apache.org/
+    features:
+    - HTTP_ROUTE
     source_path: instrumentation/apache-shenyu-2.4
     scope:
       name: io.opentelemetry.apache-shenyu-2.4
@@ -701,7 +964,14 @@ libraries:
   - name: armeria-1.3
     description: |
       This instrumentation enables HTTP client spans and metrics for the Armeria HTTP client, and HTTP server spans and metrics for the Armeria HTTP server.
+    semantic_conventions:
+    - HTTP_CLIENT_SPANS
+    - HTTP_CLIENT_METRICS
+    - HTTP_SERVER_SPANS
+    - HTTP_SERVER_METRICS
     library_link: https://armeria.dev/
+    features:
+    - HTTP_ROUTE
     source_path: instrumentation/armeria/armeria-1.3
     scope:
       name: io.opentelemetry.armeria-1.3
@@ -710,6 +980,47 @@ libraries:
       - com.linecorp.armeria:armeria:[1.3.0,)
       library:
       - com.linecorp.armeria:armeria:1.3.0
+    configurations:
+    - name: otel.instrumentation.http.known-methods
+      description: |
+        Configures the instrumentation to recognize an alternative set of HTTP request methods. All other methods will be treated as `_OTHER`.
+      type: list
+      default: CONNECT,DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT,TRACE
+    - name: otel.instrumentation.http.client.capture-request-headers
+      description: List of HTTP request headers to capture in HTTP client telemetry.
+      type: list
+      default: ''
+    - name: otel.instrumentation.http.client.capture-response-headers
+      description: List of HTTP response headers to capture in HTTP client telemetry.
+      type: list
+      default: ''
+    - name: otel.instrumentation.common.peer-service-mapping
+      description: Used to specify a mapping from host names or IP addresses to peer
+        services.
+      type: map
+      default: ''
+    - name: otel.instrumentation.http.client.emit-experimental-telemetry
+      description: |
+        Enable the capture of experimental HTTP client telemetry. Adds the `http.request.body.size` and `http.response.body.size` attributes to spans, and records `http.client.request.size` and `http.client.response.size` metrics.
+      type: boolean
+      default: false
+    - name: otel.instrumentation.http.client.experimental.redact-query-parameters
+      description: Redact sensitive URL parameters. See https://opentelemetry.io/docs/specs/semconv/http/http-spans.
+      type: boolean
+      default: true
+    - name: otel.instrumentation.http.server.capture-request-headers
+      description: List of HTTP request headers to capture in HTTP server telemetry.
+      type: list
+      default: ''
+    - name: otel.instrumentation.http.server.capture-response-headers
+      description: List of HTTP response headers to capture in HTTP server telemetry.
+      type: list
+      default: ''
+    - name: otel.instrumentation.http.server.emit-experimental-telemetry
+      description: |
+        Enable the capture of experimental HTTP server telemetry. Adds the `http.request.body.size` and `http.response.body.size` attributes to spans, and records `http.server.request.size` and `http.server.response.size` metrics.
+      type: boolean
+      default: false
     telemetry:
     - when: default
       metrics:
@@ -839,6 +1150,9 @@ libraries:
   - name: async-http-client-1.9
     description: This instrumentation enables HTTP client spans and HTTP client metrics
       for version 1 of the AsyncHttpClient (AHC) HTTP client.
+    semantic_conventions:
+    - HTTP_CLIENT_SPANS
+    - HTTP_CLIENT_METRICS
     library_link: https://github.com/AsyncHttpClient/async-http-client
     source_path: instrumentation/async-http-client/async-http-client-1.9
     scope:
@@ -846,6 +1160,34 @@ libraries:
     target_versions:
       javaagent:
       - com.ning:async-http-client:[1.9.0,)
+    configurations:
+    - name: otel.instrumentation.http.known-methods
+      description: |
+        Configures the instrumentation to recognize an alternative set of HTTP request methods. All other methods will be treated as `_OTHER`.
+      type: list
+      default: CONNECT,DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT,TRACE
+    - name: otel.instrumentation.http.client.capture-request-headers
+      description: List of HTTP request headers to capture in HTTP client telemetry.
+      type: list
+      default: ''
+    - name: otel.instrumentation.http.client.capture-response-headers
+      description: List of HTTP response headers to capture in HTTP client telemetry.
+      type: list
+      default: ''
+    - name: otel.instrumentation.common.peer-service-mapping
+      description: Used to specify a mapping from host names or IP addresses to peer
+        services.
+      type: map
+      default: ''
+    - name: otel.instrumentation.http.client.emit-experimental-telemetry
+      description: |
+        Enable the capture of experimental HTTP client telemetry. Adds the `http.request.body.size` and `http.response.body.size` attributes to spans, and records `http.client.request.size` and `http.client.response.size` metrics.
+      type: boolean
+      default: false
+    - name: otel.instrumentation.http.client.experimental.redact-query-parameters
+      description: Redact sensitive URL parameters. See https://opentelemetry.io/docs/specs/semconv/http/http-spans.
+      type: boolean
+      default: true
     telemetry:
     - when: default
       metrics:
@@ -882,6 +1224,9 @@ libraries:
   - name: async-http-client-2.0
     description: This instrumentation enables HTTP client spans and HTTP client metrics
       for version 2 of the AsyncHttpClient (AHC) HTTP client.
+    semantic_conventions:
+    - HTTP_CLIENT_SPANS
+    - HTTP_CLIENT_METRICS
     library_link: https://github.com/AsyncHttpClient/async-http-client
     source_path: instrumentation/async-http-client/async-http-client-2.0
     scope:
@@ -889,6 +1234,34 @@ libraries:
     target_versions:
       javaagent:
       - org.asynchttpclient:async-http-client:[2.0.0,)
+    configurations:
+    - name: otel.instrumentation.http.known-methods
+      description: |
+        Configures the instrumentation to recognize an alternative set of HTTP request methods. All other methods will be treated as `_OTHER`.
+      type: list
+      default: CONNECT,DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT,TRACE
+    - name: otel.instrumentation.http.client.capture-request-headers
+      description: List of HTTP request headers to capture in HTTP client telemetry.
+      type: list
+      default: ''
+    - name: otel.instrumentation.http.client.capture-response-headers
+      description: List of HTTP response headers to capture in HTTP client telemetry.
+      type: list
+      default: ''
+    - name: otel.instrumentation.common.peer-service-mapping
+      description: Used to specify a mapping from host names or IP addresses to peer
+        services.
+      type: map
+      default: ''
+    - name: otel.instrumentation.http.client.emit-experimental-telemetry
+      description: |
+        Enable the capture of experimental HTTP client telemetry. Adds the `http.request.body.size` and `http.response.body.size` attributes to spans, and records `http.client.request.size` and `http.client.response.size` metrics.
+      type: boolean
+      default: false
+    - name: otel.instrumentation.http.client.experimental.redact-query-parameters
+      description: Redact sensitive URL parameters. See https://opentelemetry.io/docs/specs/semconv/http/http-spans.
+      type: boolean
+      default: true
     telemetry:
     - when: default
       metrics:
@@ -935,6 +1308,8 @@ libraries:
     description: |
       This instrumentation does not emit telemetry on its own. Instead, it hooks into the Avaje Jex Context to extract the HTTP route and attach it to existing HTTP server spans and HTTP server metrics.
     library_link: https://avaje.io/jex/
+    features:
+    - HTTP_ROUTE
     source_path: instrumentation/avaje-jex-3.0
     minimum_java_version: 21
     scope:
@@ -947,6 +1322,8 @@ libraries:
     description: |
       Provides lightweight instrumentation of the Lambda core library, supporting all versions. It generates FaaS server spans with the `faas.invocation_id` attribute. Use this package if you only use `RequestStreamHandler` or know you don't use any event classes from `aws-lambda-java-events`. This also includes when you are using `aws-serverless-java-container` to run e.g., a Spring Boot application on Lambda.
       For custom wrappers when using library instrumentation, you can configure the `OTEL_INSTRUMENTATION_AWS_LAMBDA_HANDLER` environment variable to contain your lambda handler method (in the format `package.ClassName::methodName`) and use one of wrappers as your lambda `Handler`.
+    semantic_conventions:
+    - FAAS_SERVER_SPANS
     library_link: https://docs.aws.amazon.com/lambda/latest/dg/java-handler.html
     source_path: instrumentation/aws-lambda/aws-lambda-core-1.0
     scope:
@@ -970,7 +1347,10 @@ libraries:
           type: STRING
   - name: aws-lambda-events-2.2
     description: |
-      This version of the library instrumentation is deprecated, please use the `aws-lambda-events-3.11` library instrumentation instead. This instrumentation builds on top of the `aws-lambda-core-1.0` instrumentation, expanding support to cover the Lambda library, including standard and custom event types.
+      This version of the library instrumentation is deprecated, please use `aws-lambda-events-3.11` instead. This instrumentation enables FaaS spans and messaging spans for AWS Lambda functions handling event types.
+    semantic_conventions:
+    - FAAS_SERVER_SPANS
+    - MESSAGING_SPANS
     library_link: https://docs.aws.amazon.com/lambda/latest/dg/java-handler.html
     source_path: instrumentation/aws-lambda/aws-lambda-events-2.2
     scope:
@@ -1016,7 +1396,10 @@ libraries:
           type: STRING
   - name: aws-lambda-events-3.11
     description: |
-      This instrumentation builds on top of the `aws-lambda-core-1.0` instrumentation, expanding support to cover the Lambda library, including standard and custom event types.
+      This library instrumentation provides FaaS spans and messaging spans for AWS Lambda functions handling event types.
+    semantic_conventions:
+    - FAAS_SERVER_SPANS
+    - MESSAGING_SPANS
     library_link: https://docs.aws.amazon.com/lambda/latest/dg/java-handler.html
     source_path: instrumentation/aws-lambda/aws-lambda-events-3.11
     scope:
@@ -1064,6 +1447,13 @@ libraries:
   - name: aws-sdk-1.11
     description: |
       This instrumentation covers the AWS SDK 1.11+ client library, enabling messaging and client spans and metrics for calls to AWS services including DynamoDB, EC2, Kinesis, Lambda, RDS, S3, secrets manager, SNS/SQS and step functions.
+    semantic_conventions:
+    - HTTP_CLIENT_SPANS
+    - DATABASE_CLIENT_SPANS
+    - DATABASE_CLIENT_METRICS
+    - MESSAGING_SPANS
+    - GENAI_CLIENT_SPANS
+    - GENAI_CLIENT_METRICS
     library_link: https://aws.amazon.com/sdk-for-java/
     source_path: instrumentation/aws-sdk/aws-sdk-1.11
     scope:
@@ -1292,6 +1682,13 @@ libraries:
   - name: aws-sdk-2.2
     description: |
       This instrumentation covers the AWS SDK 2.2+ client library, enabling messaging and client spans and metrics for calls to AWS services including DynamoDB, EC2, Kinesis, Lambda, RDS, S3, SNS/SQS and Bedrock.
+    semantic_conventions:
+    - HTTP_CLIENT_SPANS
+    - DATABASE_CLIENT_SPANS
+    - DATABASE_CLIENT_METRICS
+    - MESSAGING_SPANS
+    - GENAI_CLIENT_SPANS
+    - GENAI_CLIENT_METRICS
     library_link: https://aws.amazon.com/sdk-for-java/
     source_path: instrumentation/aws-sdk/aws-sdk-2.2
     scope:
@@ -1652,6 +2049,9 @@ libraries:
     description: This instrumentation enables context propagation for the Azure Core
       library, it does not emit any telemetry on its own.
     library_link: https://learn.microsoft.com/en-us/java/api/overview/azure/core-readme?view=azure-java-stable
+    features:
+    - CONTEXT_PROPAGATION
+    - AUTO_INSTRUMENTATION_SHIM
     source_path: instrumentation/azure-core/azure-core-1.14
     scope:
       name: io.opentelemetry.azure-core-1.14
@@ -1662,6 +2062,9 @@ libraries:
     description: This instrumentation enables context propagation for the Azure Core
       library, it does not emit any telemetry on its own.
     library_link: https://learn.microsoft.com/en-us/java/api/overview/azure/core-readme?view=azure-java-stable
+    features:
+    - CONTEXT_PROPAGATION
+    - AUTO_INSTRUMENTATION_SHIM
     source_path: instrumentation/azure-core/azure-core-1.19
     scope:
       name: io.opentelemetry.azure-core-1.19
@@ -1672,6 +2075,9 @@ libraries:
     description: This instrumentation enables context propagation for the Azure Core
       library, it does not emit any telemetry on its own.
     library_link: https://learn.microsoft.com/en-us/java/api/overview/azure/core-readme?view=azure-java-stable
+    features:
+    - CONTEXT_PROPAGATION
+    - AUTO_INSTRUMENTATION_SHIM
     source_path: instrumentation/azure-core/azure-core-1.36
     scope:
       name: io.opentelemetry.azure-core-1.36
@@ -1682,6 +2088,8 @@ libraries:
   - name: c3p0-0.9
     description: The c3p0 instrumentation provides connection pool metrics for c3p0
       data sources.
+    semantic_conventions:
+    - DATABASE_POOL_METRICS
     library_link: https://github.com/swaldman/c3p0
     source_path: instrumentation/c3p0-0.9
     scope:
@@ -2432,7 +2840,7 @@ libraries:
       - io.dropwizard:dropwizard-views:(,3.0.0)
     configurations:
     - name: otel.instrumentation.common.experimental.view-telemetry.enabled
-      description: Enables the creation of experimental view (INTERNAL) spans.
+      description: Enables the creation of experimental view spans.
       type: boolean
       default: false
     telemetry:
@@ -3003,6 +3411,38 @@ libraries:
       description: Whether to instrument all classes that implement the Executor interface.
       type: boolean
       default: false
+  failsafe:
+  - name: failsafe-3.0
+    description: This standalone instrumentation enables metrics for Failsafe circuit
+      breakers.
+    library_link: https://failsafe.dev
+    source_path: instrumentation/failsafe-3.0
+    scope:
+      name: io.opentelemetry.failsafe-3.0
+    target_versions:
+      library:
+      - dev.failsafe:failsafe:3.0.1
+    telemetry:
+    - when: default
+      metrics:
+      - name: failsafe.circuit_breaker.execution.count
+        description: Count of circuit breaker executions.
+        type: LONG_SUM
+        unit: execution
+        attributes:
+        - name: failsafe.circuit_breaker.name
+          type: STRING
+        - name: failsafe.circuit_breaker.outcome
+          type: STRING
+      - name: failsafe.circuit_breaker.state_change.count
+        description: Count of circuit breaker state changes.
+        type: LONG_SUM
+        unit: execution
+        attributes:
+        - name: failsafe.circuit_breaker.name
+          type: STRING
+        - name: failsafe.circuit_breaker.state
+          type: STRING
   finagle:
   - name: finagle-http-23.11
     description: |
@@ -3163,7 +3603,7 @@ libraries:
   grails:
   - name: grails-3.0
     description: |
-      This instrumentation enriches existing HTTP server spans with HTTP route information, and optionally enables experimental controller (INTERNAL) spans for Grails applications.
+      This instrumentation enriches existing HTTP server spans with HTTP route information, and optionally enables experimental controller spans for Grails applications.
     library_link: https://grails.apache.org/
     source_path: instrumentation/grails-3.0
     scope:
@@ -3173,14 +3613,18 @@ libraries:
       - org.grails:grails-web-url-mappings:[3.0,)
     configurations:
     - name: otel.instrumentation.common.experimental.controller-telemetry.enabled
-      description: Enables the creation of experimental controller (INTERNAL) spans.
+      description: Enables the creation of experimental controller spans.
       type: boolean
       default: false
     telemetry:
     - when: otel.instrumentation.common.experimental.controller-telemetry.enabled=true
       spans:
       - span_kind: INTERNAL
-        attributes: []
+        attributes:
+        - name: code.function
+          type: STRING
+        - name: code.namespace
+          type: STRING
   graphql:
   - name: graphql-java-12.0
     description: This instrumentation enables spans for GraphQL Java operations.
@@ -3575,10 +4019,97 @@ libraries:
           type: STRING
         - name: rpc.system
           type: STRING
+  helidon:
+  - name: helidon-4.3
+    description: This instrumentation enables HTTP server spans and HTTP server metrics
+      for the Helidon HTTP server.
+    semantic_conventions:
+    - HTTP_SERVER_SPANS
+    - HTTP_SERVER_METRICS
+    library_link: https://helidon.io/
+    features:
+    - HTTP_ROUTE
+    source_path: instrumentation/helidon-4.3
+    minimum_java_version: 21
+    scope:
+      name: io.opentelemetry.helidon-4.3
+    target_versions:
+      javaagent:
+      - io.helidon.webserver:helidon-webserver:[4.3.0,)
+      library:
+      - io.helidon.webserver:helidon-webserver:4.3.0
+    configurations:
+    - name: otel.instrumentation.http.known-methods
+      description: |
+        Configures the instrumentation to recognize an alternative set of HTTP request methods. All other methods will be treated as `_OTHER`.
+      type: list
+      default: CONNECT,DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT,TRACE
+    - name: otel.instrumentation.http.server.capture-request-headers
+      description: List of HTTP request headers to capture in HTTP server telemetry.
+      type: list
+      default: ''
+    - name: otel.instrumentation.http.server.capture-response-headers
+      description: List of HTTP response headers to capture in HTTP server telemetry.
+      type: list
+      default: ''
+    - name: otel.instrumentation.http.server.emit-experimental-telemetry
+      description: |
+        Enable the capture of experimental HTTP server telemetry. Adds the `http.request.body.size` and `http.response.body.size` attributes to spans, and records `http.server.request.size` and `http.server.response.size` metrics.
+      type: boolean
+      default: false
+    telemetry:
+    - when: default
+      metrics:
+      - name: http.server.request.duration
+        description: Duration of HTTP server requests.
+        type: HISTOGRAM
+        unit: s
+        attributes:
+        - name: http.request.method
+          type: STRING
+        - name: http.response.status_code
+          type: LONG
+        - name: http.route
+          type: STRING
+        - name: network.protocol.version
+          type: STRING
+        - name: url.scheme
+          type: STRING
+      spans:
+      - span_kind: SERVER
+        attributes:
+        - name: client.address
+          type: STRING
+        - name: error.type
+          type: STRING
+        - name: http.request.method
+          type: STRING
+        - name: http.response.status_code
+          type: LONG
+        - name: http.route
+          type: STRING
+        - name: network.peer.address
+          type: STRING
+        - name: network.peer.port
+          type: LONG
+        - name: network.protocol.version
+          type: STRING
+        - name: server.address
+          type: STRING
+        - name: server.port
+          type: LONG
+        - name: url.path
+          type: STRING
+        - name: url.query
+          type: STRING
+        - name: url.scheme
+          type: STRING
+        - name: user_agent.original
+          type: STRING
   hibernate:
   - name: hibernate-3.3
     description: |
-      This instrumentation enables the generation of INTERNAL spans for Hibernate operations, including session methods (e.g., `save`, `update`, `delete`), transaction commits, and query executions.
+      This instrumentation enables the generation of spans for Hibernate operations, including session methods (e.g., `save`, `update`, `delete`), transaction commits, and query executions.
     library_link: https://github.com/hibernate/hibernate-orm
     source_path: instrumentation/hibernate/hibernate-3.3
     scope:
@@ -3605,7 +4136,7 @@ libraries:
           type: STRING
   - name: hibernate-4.0
     description: |
-      This instrumentation enables the generation of INTERNAL spans for Hibernate operations, including session methods (e.g., `save`, `update`, `delete`), transaction commits, and query executions.
+      This instrumentation enables the generation of spans for Hibernate operations, including session methods (e.g., `save`, `update`, `delete`), transaction commits, and query executions.
     library_link: https://github.com/hibernate/hibernate-orm
     source_path: instrumentation/hibernate/hibernate-4.0
     scope:
@@ -3632,7 +4163,7 @@ libraries:
           type: STRING
   - name: hibernate-6.0
     description: |
-      This instrumentation enables the generation of INTERNAL spans for Hibernate operations, including session methods (e.g., `save`, `update`, `delete`), transaction commits, and query executions.
+      This instrumentation enables the generation of spans for Hibernate operations, including session methods (e.g., `save`, `update`, `delete`), transaction commits, and query executions.
     library_link: https://github.com/hibernate/hibernate-orm
     source_path: instrumentation/hibernate/hibernate-6.0
     minimum_java_version: 11
@@ -3659,8 +4190,8 @@ libraries:
         - name: hibernate.session_id
           type: STRING
   - name: hibernate-procedure-call-4.3
-    description: This instrumentation enables the generation of INTERNAL spans for
-      Hibernate stored procedure calls.
+    description: This instrumentation enables the generation of spans for Hibernate
+      stored procedure calls.
     library_link: https://github.com/hibernate/hibernate-orm
     source_path: instrumentation/hibernate/hibernate-procedure-call-4.3
     scope:
@@ -3912,8 +4443,8 @@ libraries:
           type: STRING
   hystrix:
   - name: hystrix-1.4
-    description: This instrumentation enables the generation of INTERNAL spans for
-      Hystrix command executions and fallbacks.
+    description: This instrumentation enables the generation of spans for Hystrix
+      command executions and fallbacks.
     library_link: https://github.com/Netflix/Hystrix
     source_path: instrumentation/hystrix-1.4
     scope:
@@ -4176,21 +4707,64 @@ libraries:
       - io.javalin:javalin:[5.0.0,)
   jaxrs:
   - name: jaxrs-1.0
-    disabled_by_default: true
+    display_name: JAX-RS 1.x
+    description: |
+      This instrumentation enables spans for JAX-RS methods, and enriches existing HTTP server spans with route information.
+    library_link: https://javaee.github.io/javaee-spec/javadocs/javax/ws/rs/package-summary.html
     source_path: instrumentation/jaxrs/jaxrs-1.0
     scope:
       name: io.opentelemetry.jaxrs-1.0
     target_versions:
       javaagent:
       - javax.ws.rs:jsr311-api:[0.5,)
+    configurations:
+    - name: otel.instrumentation.common.experimental.controller-telemetry.enabled
+      description: Enables the creation of experimental controller spans.
+      type: boolean
+      default: false
+    telemetry:
+    - when: default
+      spans:
+      - span_kind: INTERNAL
+        attributes:
+        - name: code.function
+          type: STRING
+        - name: code.namespace
+          type: STRING
   - name: jaxrs-2.0-annotations
+    display_name: JAX-RS 2.x
+    description: |
+      This instrumentation enables spans for JAX-RS annotated methods, and enriches existing HTTP server spans with route information.
+    library_link: https://javaee.github.io/javaee-spec/javadocs/javax/ws/rs/package-summary.html
     source_path: instrumentation/jaxrs/jaxrs-2.0/jaxrs-2.0-annotations
     scope:
       name: io.opentelemetry.jaxrs-2.0-annotations
     target_versions:
       javaagent:
       - javax.ws.rs:javax.ws.rs-api:[,]
+    configurations:
+    - name: otel.instrumentation.common.experimental.controller-telemetry.enabled
+      description: Enables the creation of experimental controller spans.
+      type: boolean
+      default: false
+    - name: otel.instrumentation.jaxrs.experimental-span-attributes
+      description: Enables the experimental `jaxrs.canceled` span attribute.
+      type: boolean
+      default: false
+    telemetry:
+    - when: default
+      spans:
+      - span_kind: INTERNAL
+        attributes:
+        - name: code.function
+          type: STRING
+        - name: code.namespace
+          type: STRING
   - name: jaxrs-2.0-cxf-3.2
+    display_name: Apache CXF JAX-RS 2.x
+    description: |
+      This instrumentation enables spans for JAX-RS methods when using Apache CXF, and enriches existing HTTP server spans with route information.
+    library_link: https://cxf.apache.org/
     source_path: instrumentation/jaxrs/jaxrs-2.0/jaxrs-2.0-cxf-3.2
     scope:
       name: io.opentelemetry.jaxrs-2.0-cxf-3.2
@@ -4198,7 +4772,39 @@ libraries:
       javaagent:
       - org.apache.tomee:openejb-cxf-rs:(8,)
       - org.apache.cxf:cxf-rt-frontend-jaxrs:[3.2,4)
+    configurations:
+    - name: otel.instrumentation.common.experimental.controller-telemetry.enabled
+      description: Enables the creation of experimental controller spans.
+      type: boolean
+      default: false
+    - name: otel.instrumentation.jaxrs.experimental-span-attributes
+      description: Enables the experimental `jaxrs.canceled` span attribute.
+      type: boolean
+      default: false
+    telemetry:
+    - when: default
+      spans:
+      - span_kind: INTERNAL
+        attributes:
+        - name: code.function
+          type: STRING
+        - name: code.namespace
+          type: STRING
+    - when: otel.instrumentation.jaxrs.experimental-span-attributes=true
+      spans:
+      - span_kind: INTERNAL
+        attributes:
+        - name: code.function
+          type: STRING
+        - name: code.namespace
+          type: STRING
+        - name: jaxrs.canceled
+          type: BOOLEAN
   - name: jaxrs-2.0-jersey-2.0
+    display_name: Eclipse Jersey JAX-RS 2.x
+    description: |
+      This instrumentation enables spans for JAX-RS methods when using Jersey, and enriches existing HTTP server spans with route information.
+    library_link: https://eclipse-ee4j.github.io/jersey/
     source_path: instrumentation/jaxrs/jaxrs-2.0/jaxrs-2.0-jersey-2.0
     scope:
       name: io.opentelemetry.jaxrs-2.0-jersey-2.0
@@ -4206,7 +4812,39 @@ libraries:
       javaagent:
       - org.glassfish.jersey.core:jersey-server:[2.0,3.0.0)
       - org.glassfish.jersey.containers:jersey-container-servlet:[2.0,3.0.0)
+    configurations:
+    - name: otel.instrumentation.common.experimental.controller-telemetry.enabled
+      description: Enables the creation of experimental controller spans.
+      type: boolean
+      default: false
+    - name: otel.instrumentation.jaxrs.experimental-span-attributes
+      description: Enables the experimental `jaxrs.canceled` span attribute.
+      type: boolean
+      default: false
+    telemetry:
+    - when: default
+      spans:
+      - span_kind: INTERNAL
+        attributes:
+        - name: code.function
+          type: STRING
+        - name: code.namespace
+          type: STRING
+    - when: otel.instrumentation.jaxrs.experimental-span-attributes=true
+      spans:
+      - span_kind: INTERNAL
+        attributes:
+        - name: code.function
+          type: STRING
+        - name: code.namespace
+          type: STRING
+        - name: jaxrs.canceled
+          type: BOOLEAN
   - name: jaxrs-2.0-resteasy-3.0
+    display_name: JBoss RESTEasy JAX-RS 2.x
+    description: |
+      This instrumentation enables spans for JAX-RS methods when using RESTEasy, and enriches existing HTTP server spans with route information.
+    library_link: https://resteasy.dev/
     source_path: instrumentation/jaxrs/jaxrs-2.0/jaxrs-2.0-resteasy-3.0
     scope:
       name: io.opentelemetry.jaxrs-2.0-resteasy-3.0
@@ -4214,7 +4852,39 @@ libraries:
       javaagent:
       - org.jboss.resteasy:resteasy-jaxrs:[3.0.0.Final,3.1.0.Final)
       - org.jboss.resteasy:resteasy-jaxrs:[3.5.0.Final,4)
+    configurations:
+    - name: otel.instrumentation.common.experimental.controller-telemetry.enabled
+      description: Enables the creation of experimental controller spans.
+      type: boolean
+      default: false
+    - name: otel.instrumentation.jaxrs.experimental-span-attributes
+      description: Enables the experimental `jaxrs.canceled` span attribute.
+      type: boolean
+      default: false
+    telemetry:
+    - when: default
+      spans:
+      - span_kind: INTERNAL
+        attributes:
+        - name: code.function
+          type: STRING
+        - name: code.namespace
+          type: STRING
+    - when: otel.instrumentation.jaxrs.experimental-span-attributes=true
+      spans:
+      - span_kind: INTERNAL
+        attributes:
+        - name: code.function
+          type: STRING
+        - name: code.namespace
+          type: STRING
+        - name: jaxrs.canceled
+          type: BOOLEAN
   - name: jaxrs-2.0-resteasy-3.1
+    display_name: JBoss RESTEasy JAX-RS 2.x
+    description: |
+      This instrumentation enables spans for JAX-RS methods when using RESTEasy, and enriches existing HTTP server spans with route information.
+    library_link: https://resteasy.dev/
     source_path: instrumentation/jaxrs/jaxrs-2.0/jaxrs-2.0-resteasy-3.1
     scope:
       name: io.opentelemetry.jaxrs-2.0-resteasy-3.1
@@ -4222,14 +4892,68 @@ libraries:
       javaagent:
       - org.jboss.resteasy:resteasy-jaxrs:[3.1.0.Final,3.5.0.Final)
       - org.jboss.resteasy:resteasy-core:[4.0.0.Final,6)
+    configurations:
+    - name: otel.instrumentation.common.experimental.controller-telemetry.enabled
+      description: Enables the creation of experimental controller spans.
+      type: boolean
+      default: false
+    - name: otel.instrumentation.jaxrs.experimental-span-attributes
+      description: Enables the experimental `jaxrs.canceled` span attribute.
+      type: boolean
+      default: false
+    telemetry:
+    - when: default
+      spans:
+      - span_kind: INTERNAL
+        attributes:
+        - name: code.function
+          type: STRING
+        - name: code.namespace
+          type: STRING
+    - when: otel.instrumentation.jaxrs.experimental-span-attributes=true
+      spans:
+      - span_kind: INTERNAL
+        attributes:
+        - name: code.function
+          type: STRING
+        - name: code.namespace
+          type: STRING
+        - name: jaxrs.canceled
+          type: BOOLEAN
   - name: jaxrs-3.0-annotations
+    display_name: JAX-RS 3.x
+    description: |
+      This instrumentation enables spans for JAX-RS annotated methods, and enriches existing HTTP server spans with route information.
+    library_link: https://jakarta.ee/specifications/restful-ws/3.0/
     source_path: instrumentation/jaxrs/jaxrs-3.0/jaxrs-3.0-annotations
     scope:
       name: io.opentelemetry.jaxrs-3.0-annotations
     target_versions:
       javaagent:
       - jakarta.ws.rs:jakarta.ws.rs-api:[3.0.0,)
+    configurations:
+    - name: otel.instrumentation.common.experimental.controller-telemetry.enabled
+      description: Enables the creation of experimental controller spans.
+      type: boolean
+      default: false
+    - name: otel.instrumentation.jaxrs.experimental-span-attributes
+      description: Enables the experimental `jaxrs.canceled` span attribute.
+      type: boolean
+      default: false
+    telemetry:
+    - when: default
+      spans:
+      - span_kind: INTERNAL
+        attributes:
+        - name: code.function
+          type: STRING
+        - name: code.namespace
+          type: STRING
   - name: jaxrs-3.0-jersey-3.0
+    display_name: Eclipse Jersey JAX-RS 3.x
+    description: |
+      This instrumentation enables spans for JAX-RS methods when using Jersey, and enriches existing HTTP server spans with route information.
+    library_link: https://eclipse-ee4j.github.io/jersey/
     source_path: instrumentation/jaxrs/jaxrs-3.0/jaxrs-3.0-jersey-3.0
     minimum_java_version: 11
     scope:
@@ -4237,7 +4961,39 @@ libraries:
     target_versions:
       javaagent:
       - org.glassfish.jersey.core:jersey-server:[3.0.0,)
+    configurations:
+    - name: otel.instrumentation.common.experimental.controller-telemetry.enabled
+      description: Enables the creation of experimental controller spans.
+      type: boolean
+      default: false
+    - name: otel.instrumentation.jaxrs.experimental-span-attributes
+      description: Enables the experimental `jaxrs.canceled` span attribute.
+      type: boolean
+      default: false
+    telemetry:
+    - when: default
+      spans:
+      - span_kind: INTERNAL
+        attributes:
+        - name: code.function
+          type: STRING
+        - name: code.namespace
+          type: STRING
+    - when: otel.instrumentation.jaxrs.experimental-span-attributes=true
+      spans:
+      - span_kind: INTERNAL
+        attributes:
+        - name: code.function
+          type: STRING
+        - name: code.namespace
+          type: STRING
+        - name: jaxrs.canceled
+          type: BOOLEAN
   - name: jaxrs-3.0-resteasy-6.0
+    display_name: JBoss RESTEasy JAX-RS 3.x
+    description: |
+      This instrumentation enables spans for JAX-RS methods when using RESTEasy, and enriches existing HTTP server spans with route information.
+    library_link: https://resteasy.dev/
     source_path: instrumentation/jaxrs/jaxrs-3.0/jaxrs-3.0-resteasy-6.0
     minimum_java_version: 11
     scope:
@@ -4245,36 +5001,138 @@ libraries:
     target_versions:
       javaagent:
       - org.jboss.resteasy:resteasy-core:[6.0.0.Final,)
+    configurations:
+    - name: otel.instrumentation.common.experimental.controller-telemetry.enabled
+      description: Enables the creation of experimental controller spans.
+      type: boolean
+      default: false
+    - name: otel.instrumentation.jaxrs.experimental-span-attributes
+      description: Enables the experimental `jaxrs.canceled` span attribute.
+      type: boolean
+      default: false
+    telemetry:
+    - when: default
+      spans:
+      - span_kind: INTERNAL
+        attributes:
+        - name: code.function
+          type: STRING
+        - name: code.namespace
+          type: STRING
+    - when: otel.instrumentation.jaxrs.experimental-span-attributes=true
+      spans:
+      - span_kind: INTERNAL
+        attributes:
+        - name: code.function
+          type: STRING
+        - name: code.namespace
+          type: STRING
+        - name: jaxrs.canceled
+          type: BOOLEAN
   jaxws:
   - name: jaxws-2.0
+    display_name: JAX-WS
+    description: |
+      This instrumentation enables controller spans for JAX-WS Provider implementations (controller spans are disabled by default).
+    library_link: https://github.com/jakartaee/jax-ws-api
+    features:
+    - CONTROLLER_SPANS
     source_path: instrumentation/jaxws/jaxws-2.0
     scope:
       name: io.opentelemetry.jaxws-2.0
     target_versions:
       javaagent:
       - javax.xml.ws:jaxws-api:[2.0,]
+    configurations:
+    - name: otel.instrumentation.common.experimental.controller-telemetry.enabled
+      description: Enables the creation of experimental controller spans.
+      type: boolean
+      default: false
+    telemetry:
+    - when: otel.instrumentation.common.experimental.controller-telemetry.enabled=true
+      spans:
+      - span_kind: INTERNAL
+        attributes:
+        - name: code.function
+          type: STRING
+        - name: code.namespace
+          type: STRING
   - name: jaxws-2.0-axis2-1.6
+    display_name: Apache Axis2 1.6 JAX-WS 2.x
+    description: |
+      This instrumentation enriches HTTP server spans with route information, and enables controller spans for Apache Axis2 JAX-WS web services (controller spans are disabled by default).
+    library_link: https://axis.apache.org/axis2/java/core/
+    features:
+    - HTTP_ROUTE
+    - CONTROLLER_SPANS
     source_path: instrumentation/jaxws/jaxws-2.0-axis2-1.6
     scope:
       name: io.opentelemetry.jaxws-2.0-axis2-1.6
     target_versions:
       javaagent:
       - org.apache.axis2:axis2-jaxws:[1.6.0,)
+    configurations:
+    - name: otel.instrumentation.common.experimental.controller-telemetry.enabled
+      description: Enables the creation of experimental controller spans.
+      type: boolean
+      default: false
+    telemetry:
+    - when: otel.instrumentation.common.experimental.controller-telemetry.enabled=true
+      spans:
+      - span_kind: INTERNAL
+        attributes: []
   - name: jaxws-cxf-3.0
+    display_name: Apache CXF 3.x JAX-WS
+    description: |
+      This instrumentation enriches HTTP server spans with route information, and enables controller spans for Apache CXF JAX-WS web services (controller spans are disabled by default).
+    library_link: https://cxf.apache.org/
+    features:
+    - HTTP_ROUTE
+    - CONTROLLER_SPANS
     source_path: instrumentation/jaxws/jaxws-cxf-3.0
     scope:
       name: io.opentelemetry.jaxws-cxf-3.0
     target_versions:
       javaagent:
       - org.apache.cxf:cxf-rt-frontend-jaxws:[3.0.0,)
+    configurations:
+    - name: otel.instrumentation.common.experimental.controller-telemetry.enabled
+      description: Enables the creation of experimental controller spans.
+      type: boolean
+      default: false
+    telemetry:
+    - when: otel.instrumentation.common.experimental.controller-telemetry.enabled=true
+      spans:
+      - span_kind: INTERNAL
+        attributes: []
   - name: jaxws-jws-api-1.1
+    display_name: JWS API
+    description: |
+      This instrumentation enables controller spans for methods annotated with the @WebService annotation from the JWS API (controller spans are disabled by default).
+    library_link: https://github.com/jakartaee/jws-api
     disabled_by_default: true
+    features:
+    - CONTROLLER_SPANS
     source_path: instrumentation/jaxws/jaxws-jws-api-1.1
     scope:
       name: io.opentelemetry.jaxws-jws-api-1.1
     target_versions:
       javaagent:
       - javax.jws:javax.jws-api:[1.1,]
+    configurations:
+    - name: otel.instrumentation.common.experimental.controller-telemetry.enabled
+      description: Enables the creation of experimental controller spans.
+      type: boolean
+      default: false
+    telemetry:
+    - when: otel.instrumentation.common.experimental.controller-telemetry.enabled=true
+      spans:
+      - span_kind: INTERNAL
+        attributes:
+        - name: code.function
+          type: STRING
+        - name: code.namespace
+          type: STRING
   - name: jaxws-metro-2.2
     source_path: instrumentation/jaxws/jaxws-metro-2.2
     scope:
@@ -4322,6 +5180,11 @@ libraries:
     - name: otel.instrumentation.jdbc.experimental.transaction.enabled
       description: Enables experimental instrumentation to create spans for COMMIT
         and ROLLBACK operations.
+      type: boolean
+      default: false
+    - name: otel.instrumentation.jdbc.experimental.sqlcommenter.enabled
+      description: |
+        Enables augmenting queries with a comment containing the tracing information. See [sqlcommenter](https://google.github.io/sqlcommenter/) for more info. WARNING: augmenting queries with tracing context will make query texts unique, which may have adverse impact on database performance. Consult with database experts before enabling.
       type: boolean
       default: false
     - name: otel.instrumentation.common.peer-service-mapping
@@ -4840,6 +5703,57 @@ libraries:
     target_versions:
       javaagent:
       - org.mybatis:mybatis:[3.2.0,)
+  nats:
+  - name: nats-2.17
+    description: This instrumentation provides messaging spans for NATS
+    source_path: instrumentation/nats/nats-2.17
+    scope:
+      name: io.opentelemetry.nats-2.17
+    target_versions:
+      javaagent:
+      - io.nats:jnats:[2.17.2,)
+      library:
+      - io.nats:jnats:2.17.2
+    configurations:
+    - name: otel.instrumentation.messaging.experimental.capture-headers
+      description: Allows configuring headers to capture as span attributes.
+      type: list
+      default: ''
+    telemetry:
+    - when: default
+      spans:
+      - span_kind: CONSUMER
+        attributes:
+        - name: messaging.client_id
+          type: STRING
+        - name: messaging.destination.name
+          type: STRING
+        - name: messaging.destination.temporary
+          type: BOOLEAN
+        - name: messaging.header.captured_header
+          type: STRING_ARRAY
+        - name: messaging.message.body.size
+          type: LONG
+        - name: messaging.operation
+          type: STRING
+        - name: messaging.system
+          type: STRING
+      - span_kind: PRODUCER
+        attributes:
+        - name: messaging.client_id
+          type: STRING
+        - name: messaging.destination.name
+          type: STRING
+        - name: messaging.destination.temporary
+          type: BOOLEAN
+        - name: messaging.header.captured_header
+          type: STRING_ARRAY
+        - name: messaging.message.body.size
+          type: LONG
+        - name: messaging.operation
+          type: STRING
+        - name: messaging.system
+          type: STRING
   netty:
   - name: netty-3.8
     source_path: instrumentation/netty/netty-3.8
@@ -5331,7 +6245,58 @@ libraries:
         - name: gen_ai.usage.output_tokens
           type: LONG
   opensearch:
+  - name: opensearch-java-3.0
+    description: |
+      This instrumentation enables database client spans and database client metrics for the OpenSearch Java client.
+    semantic_conventions:
+    - DATABASE_CLIENT_SPANS
+    - DATABASE_CLIENT_METRICS
+    library_link: https://docs.opensearch.org/latest/clients/java/
+    source_path: instrumentation/opensearch/opensearch-java-3.0
+    minimum_java_version: 11
+    scope:
+      name: io.opentelemetry.opensearch-java-3.0
+    target_versions:
+      javaagent:
+      - org.opensearch.client:opensearch-java:[3.0,)
+    telemetry:
+    - when: default
+      spans:
+      - span_kind: CLIENT
+        attributes:
+        - name: db.operation
+          type: STRING
+        - name: db.statement
+          type: STRING
+        - name: db.system
+          type: STRING
+    - when: otel.semconv-stability.opt-in=database
+      metrics:
+      - name: db.client.operation.duration
+        description: Duration of database client operations.
+        type: HISTOGRAM
+        unit: s
+        attributes:
+        - name: db.operation.name
+          type: STRING
+        - name: db.system.name
+          type: STRING
+      spans:
+      - span_kind: CLIENT
+        attributes:
+        - name: db.operation.name
+          type: STRING
+        - name: db.query.text
+          type: STRING
+        - name: db.system.name
+          type: STRING
   - name: opensearch-rest-1.0
+    description: |
+      This instrumentation enables database client spans and database client metrics for OpenSearch REST clients.
+    semantic_conventions:
+    - DATABASE_CLIENT_SPANS
+    - DATABASE_CLIENT_METRICS
+    library_link: https://docs.opensearch.org/latest/clients/
     source_path: instrumentation/opensearch/opensearch-rest-1.0
     minimum_java_version: 11
     scope:
@@ -5339,7 +6304,44 @@ libraries:
     target_versions:
       javaagent:
       - org.opensearch.client:opensearch-rest-client:[1.0,3.0)
+    telemetry:
+    - when: default
+      spans:
+      - span_kind: CLIENT
+        attributes:
+        - name: db.operation
+          type: STRING
+        - name: db.statement
+          type: STRING
+        - name: db.system
+          type: STRING
+    - when: otel.semconv-stability.opt-in=database
+      metrics:
+      - name: db.client.operation.duration
+        description: Duration of database client operations.
+        type: HISTOGRAM
+        unit: s
+        attributes:
+        - name: db.operation.name
+          type: STRING
+        - name: db.system.name
+          type: STRING
+      spans:
+      - span_kind: CLIENT
+        attributes:
+        - name: db.operation.name
+          type: STRING
+        - name: db.query.text
+          type: STRING
+        - name: db.system.name
+          type: STRING
   - name: opensearch-rest-3.0
+    description: |
+      This instrumentation enables database client spans and database client metrics for OpenSearch REST clients.
+    semantic_conventions:
+    - DATABASE_CLIENT_SPANS
+    - DATABASE_CLIENT_METRICS
+    library_link: https://docs.opensearch.org/latest/clients/
     source_path: instrumentation/opensearch/opensearch-rest-3.0
     minimum_java_version: 11
     scope:
@@ -5347,6 +6349,37 @@ libraries:
     target_versions:
       javaagent:
       - org.opensearch.client:opensearch-rest-client:[3.0,)
+    telemetry:
+    - when: default
+      spans:
+      - span_kind: CLIENT
+        attributes:
+        - name: db.operation
+          type: STRING
+        - name: db.statement
+          type: STRING
+        - name: db.system
+          type: STRING
+    - when: otel.semconv-stability.opt-in=database
+      metrics:
+      - name: db.client.operation.duration
+        description: Duration of database client operations.
+        type: HISTOGRAM
+        unit: s
+        attributes:
+        - name: db.operation.name
+          type: STRING
+        - name: db.system.name
+          type: STRING
+      spans:
+      - span_kind: CLIENT
+        attributes:
+        - name: db.operation.name
+          type: STRING
+        - name: db.query.text
+          type: STRING
+        - name: db.system.name
+          type: STRING
   oracle:
   - name: oracle-ucp-11.2
     description: The Oracle Universal Connection Pool (UCP) instrumentation generates
@@ -6071,13 +7104,6 @@ libraries:
     scope:
       name: io.opentelemetry.runtime-telemetry-java8
   rxjava:
-  - name: rxjava-1.0
-    source_path: instrumentation/rxjava/rxjava-1.0
-    scope:
-      name: io.opentelemetry.rxjava-1.0
-    target_versions:
-      library:
-      - io.reactivex:rxjava:1.0.7
   - name: rxjava-2.0
     source_path: instrumentation/rxjava/rxjava-2.0
     scope:
@@ -6148,8 +7174,8 @@ libraries:
       - com.sparkjava:spark-core:[2.3,)
   spring:
   - name: spring-batch-3.0
-    description: This instrumentation enables INTERNAL spans for jobs run by the Spring
-      Batch framework.
+    description: This instrumentation enables spans for jobs run by the Spring Batch
+      framework.
     library_link: https://spring.io/projects/spring-batch
     disabled_by_default: true
     source_path: instrumentation/spring/spring-batch-3.0
@@ -6677,7 +7703,7 @@ libraries:
       - org.springframework:spring-web:[6.0.0,)
   - name: spring-webflux-5.0
     description: |
-      This instrumentation enables HTTP client spans and metrics for Spring WebFlux 5.0. It also optionally enables experimental controller (INTERNAL) spans.
+      This instrumentation enables HTTP client spans and metrics for Spring WebFlux 5.0. It also optionally enables experimental controller spans.
     library_link: https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/reactive/package-summary.html
     source_path: instrumentation/spring/spring-webflux/spring-webflux-5.0
     scope:
@@ -6689,7 +7715,7 @@ libraries:
       - io.projectreactor.netty:reactor-netty:[0.8.0.RELEASE,)
     configurations:
     - name: otel.instrumentation.common.experimental.controller-telemetry.enabled
-      description: Enables the creation of experimental controller (INTERNAL) spans.
+      description: Enables the creation of experimental controller spans.
       type: boolean
       default: false
     telemetry:
@@ -6813,7 +7839,7 @@ libraries:
           type: STRING
   - name: spring-webmvc-3.1
     description: |
-      This instrumentation enables optional Controller and View (INTERNAL) spans for Spring WebMVC 3.1+.
+      This instrumentation enables optional Controller and View spans for Spring WebMVC 3.1+.
     library_link: https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/servlet/mvc/package-summary.html
     source_path: instrumentation/spring/spring-webmvc/spring-webmvc-3.1
     scope:
@@ -6828,11 +7854,11 @@ libraries:
       type: boolean
       default: false
     - name: otel.instrumentation.common.experimental.controller-telemetry.enabled
-      description: Enables the creation of experimental controller (INTERNAL) spans.
+      description: Enables the creation of experimental controller spans.
       type: boolean
       default: false
     - name: otel.instrumentation.common.experimental.view-telemetry.enabled
-      description: Enables the creation of experimental view (INTERNAL) spans.
+      description: Enables the creation of experimental view spans.
       type: boolean
       default: false
     telemetry:
@@ -6914,7 +7940,7 @@ libraries:
           type: STRING
   - name: spring-webmvc-6.0
     description: |
-      This instrumentation enables optional Controller and View (INTERNAL) spans for Spring WebMVC 6.0+.
+      This instrumentation enables optional Controller and View spans for Spring WebMVC 6.0+.
     library_link: https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/servlet/mvc/package-summary.html
     source_path: instrumentation/spring/spring-webmvc/spring-webmvc-6.0
     minimum_java_version: 17
@@ -6930,11 +7956,11 @@ libraries:
       type: boolean
       default: false
     - name: otel.instrumentation.common.experimental.controller-telemetry.enabled
-      description: Enables the creation of experimental controller (INTERNAL) spans.
+      description: Enables the creation of experimental controller spans.
       type: boolean
       default: false
     - name: otel.instrumentation.common.experimental.view-telemetry.enabled
-      description: Enables the creation of experimental view (INTERNAL) spans.
+      description: Enables the creation of experimental view spans.
       type: boolean
       default: false
     telemetry:
@@ -7649,6 +8675,13 @@ internal:
   source_path: instrumentation/internal/internal-lambda
   scope:
     name: io.opentelemetry.internal-lambda
+- name: rxjava-1.0
+  source_path: instrumentation/rxjava/rxjava-1.0
+  scope:
+    name: io.opentelemetry.rxjava-1.0
+  target_versions:
+    library:
+    - io.reactivex:rxjava:1.0.7
 - name: internal-eclipse-osgi-3.6
   source_path: instrumentation/internal/internal-eclipse-osgi-3.6
   scope:
