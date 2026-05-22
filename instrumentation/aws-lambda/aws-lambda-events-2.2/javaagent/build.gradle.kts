@@ -38,6 +38,6 @@ dependencies {
 
 tasks {
   test {
-    systemProperty("collectMetadata", findProperty("collectMetadata")?.toString() ?: "false")
+    systemProperty("collectMetadata", otelProps.collectMetadata)
   }
 }

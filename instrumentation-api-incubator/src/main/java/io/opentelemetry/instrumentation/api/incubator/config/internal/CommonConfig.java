@@ -31,14 +31,13 @@ public final class CommonConfig {
   private final List<String> serverResponseHeaders;
   private final Set<String> knownHttpRequestMethods;
   private final EnduserConfig enduserConfig;
-  private final boolean querySanitizationEnabled;
-  private final boolean sqlCommenterEnabled;
   private final boolean emitExperimentalHttpClientTelemetry;
   private final boolean emitExperimentalHttpServerTelemetry;
   private final Set<String> sensitiveQueryParameters;
   private final String loggingTraceIdKey;
   private final String loggingSpanIdKey;
   private final String loggingTraceFlagsKey;
+  private final boolean v3Preview;
 
   public CommonConfig(OpenTelemetry openTelemetry) {
     DeclarativeConfigProperties generalConfig =
@@ -72,10 +71,6 @@ public final class CommonConfig {
                 .get("http")
                 .getScalarList(
                     "known_methods", String.class, new ArrayList<>(HttpConstants.KNOWN_METHODS)));
-    querySanitizationEnabled =
-        commonConfig.get("database").get("statement_sanitizer").getBoolean("enabled", true);
-    sqlCommenterEnabled =
-        commonConfig.get("database").get("sqlcommenter/development").getBoolean("enabled", false);
     emitExperimentalHttpClientTelemetry =
         commonConfig
             .get("http")
@@ -115,6 +110,7 @@ public final class CommonConfig {
         commonConfig.get("logging").getString("span_id", LoggingContextConstants.SPAN_ID);
     loggingTraceFlagsKey =
         commonConfig.get("logging").getString("trace_flags", LoggingContextConstants.TRACE_FLAGS);
+    v3Preview = commonConfig.getBoolean("v3_preview", false);
   }
 
   public List<String> getClientRequestHeaders() {
@@ -141,14 +137,6 @@ public final class CommonConfig {
     return enduserConfig;
   }
 
-  public boolean isQuerySanitizationEnabled() {
-    return querySanitizationEnabled;
-  }
-
-  public boolean isSqlCommenterEnabled() {
-    return sqlCommenterEnabled;
-  }
-
   public boolean shouldEmitExperimentalHttpClientTelemetry() {
     return emitExperimentalHttpClientTelemetry;
   }
@@ -171,5 +159,9 @@ public final class CommonConfig {
 
   public String getTraceFlagsKey() {
     return loggingTraceFlagsKey;
+  }
+
+  public boolean isV3Preview() {
+    return v3Preview;
   }
 }

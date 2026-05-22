@@ -8,7 +8,6 @@ package io.opentelemetry.javaagent.tooling;
 import static java.util.Arrays.asList;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.instrumentation.api.internal.SemconvStability;
 import io.opentelemetry.instrumentation.config.bridge.ConfigPropertiesBackedConfigProvider;
 import io.opentelemetry.javaagent.bootstrap.OpenTelemetrySdkAccess;
 import io.opentelemetry.javaagent.extension.instrumentation.internal.AgentDistributionConfig;
@@ -26,7 +25,7 @@ public final class OpenTelemetryInstaller {
    * AutoConfiguredOpenTelemetrySdk}.
    *
    * @return the {@link AutoConfiguredOpenTelemetrySdk}
-  */
+   */
   public static AutoConfiguredOpenTelemetrySdk installOpenTelemetrySdk(
       ClassLoader extensionClassLoader) {
 
@@ -49,8 +48,6 @@ public final class OpenTelemetryInstaller {
     }
 
     setForceFlush(sdk);
-    OpenTelemetrySdkAccess.internalSetEarlySpans(new SdkEarlySpans(sdk));
-    SemconvStability.configure(sdk);
     OpenTelemetrySdkAccess.internalSetEarlySpans(new SdkEarlySpans(sdk));
     GlobalOpenTelemetry.set(sdk);
 

@@ -14,11 +14,11 @@ dependencies {
   // First version that supports multiValueQueryStringParameters in API Gateway HTTP
   library("com.amazonaws:aws-lambda-java-events:3.3.1")
 
-  // By default, "aws-lambda-java-serialization" library is enabled in the classpath
-  // at the AWS Lambda environment except "java8" runtime which is deprecated.
-  // But it is available at "java8.al2" runtime, so it is still can be used
+  // By default, the "aws-lambda-java-serialization" library is present on the classpath
+  // in the AWS Lambda environment except for the deprecated "java8" runtime.
+  // It is still available on the "java8.al2" runtime, so it can still be used
   // by Java 8 based Lambda functions.
-  // So that is the reason that why we add it as compile only dependency.
+  // That is why we add it as a compile-only dependency.
   compileOnly("com.amazonaws:aws-lambda-java-serialization:1.1.5")
 
   // allows to get the function ARN

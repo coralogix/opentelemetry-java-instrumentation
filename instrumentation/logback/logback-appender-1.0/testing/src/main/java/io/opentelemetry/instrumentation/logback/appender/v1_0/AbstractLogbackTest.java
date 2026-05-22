@@ -63,7 +63,7 @@ public abstract class AbstractLogbackTest {
 
   @ParameterizedTest
   @MethodSource("provideParameters")
-  public void test(boolean logException, boolean withParent) throws InterruptedException {
+  void test(boolean logException, boolean withParent) throws InterruptedException {
     test(abcLogger, Logger::debug, Logger::debug, logException, withParent, null, null, null);
     testing().clearData();
     test(
@@ -178,7 +178,7 @@ public abstract class AbstractLogbackTest {
                           equalTo(EXCEPTION_MESSAGE, "hello"),
                           satisfies(
                               EXCEPTION_STACKTRACE,
-                              v -> v.contains(AbstractLogbackTest.class.getName()))));
+                              val -> val.contains(AbstractLogbackTest.class.getName()))));
                 }
                 logRecord.hasAttributesSatisfyingExactly(attributeAsserts);
               });
@@ -264,7 +264,7 @@ public abstract class AbstractLogbackTest {
   }
 
   @Test
-  public void testMarker() {
+  void testMarker() {
 
     String markerName = "aMarker";
     Marker marker = MarkerFactory.getMarker(markerName);
@@ -303,12 +303,12 @@ public abstract class AbstractLogbackTest {
   }
 
   @FunctionalInterface
-  public interface OneArgLoggerMethod {
+  private interface OneArgLoggerMethod {
     void call(Logger logger, String msg, Object arg);
   }
 
   @FunctionalInterface
-  public interface TwoArgLoggerMethod {
+  private interface TwoArgLoggerMethod {
     void call(Logger logger, String msg, Object arg1, Object arg2);
   }
 }

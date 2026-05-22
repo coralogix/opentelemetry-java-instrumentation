@@ -29,6 +29,7 @@ import io.opentelemetry.javaagent.instrumentation.akkahttp.server.route.AkkaRout
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
+import javax.annotation.Nullable;
 
 public class AkkaFlowWrapper
     extends GraphStage<BidiShape<HttpResponse, HttpResponse, HttpRequest, HttpRequest>> {
@@ -45,6 +46,7 @@ public class AkkaFlowWrapper
     return handler.join(new AkkaFlowWrapper());
   }
 
+  @Nullable
   public static Context getContext(OutHandler outHandler) {
     if (outHandler instanceof TracingLogic.ApplicationOutHandler) {
       // We have multiple requests here only when requests are pipelined on the same connection.
@@ -206,10 +208,10 @@ public class AkkaFlowWrapper
 
   private static class TracingRequest {
     static final TracingRequest EMPTY = new TracingRequest(null, null);
-    final Context context;
-    final HttpRequest request;
+    @Nullable final Context context;
+    @Nullable final HttpRequest request;
 
-    TracingRequest(Context context, HttpRequest request) {
+    TracingRequest(@Nullable Context context, @Nullable HttpRequest request) {
       this.context = context;
       this.request = request;
     }

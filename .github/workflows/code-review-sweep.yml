@@ -4,6 +4,7 @@ on:
   schedule:
     # Every 15 minutes
     - cron: "*/15 * * * *"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -18,25 +19,31 @@ jobs:
   # Job 1: Determine which modules to review
   # ---------------------------------------------------------------------------
   dispatch:
+    # Only run on official repo, not forks
+    if: github.repository == 'open-telemetry/opentelemetry-java-instrumentation'
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.build-matrix.outputs.matrix }}
       has_work: ${{ steps.build-matrix.outputs.has_work }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Restore progress cache
-        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
-          path: /tmp/review-progress
-          key: code-review-progress
-          restore-keys: code-review-progress-
+          fetch-depth: 1
+
+      - name: Fetch progress branch
+        run: git fetch origin otelbot/code-review-progress || true
 
       - name: Build review matrix
         id: build-matrix
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python .github/scripts/build-review-matrix.py
+        run: |
+          # Read progress from the dedicated orphan branch (if it exists)
+          progress=$(git show origin/otelbot/code-review-progress:reviewed.txt 2>/dev/null || true)
+          if [[ -n "$progress" ]]; then
+            export REVIEW_PROGRESS="$progress"
+          fi
+          python .github/scripts/build-review-matrix.py
 
   # ---------------------------------------------------------------------------
   # Job 2: Run copilot review for each module in the matrix
@@ -48,15 +55,24 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.dispatch.outputs.matrix) }}
       fail-fast: false
-      max-parallel: 2  # keep low to avoid Copilot API rate limits
+      max-parallel: 3  # keep low to avoid Copilot API rate limits
+    environment: protected
     permissions:
       contents: write  # for git push
     env:
       MODULE_DIR: ${{ matrix.module_dir }}
       SHORT_NAME: ${{ matrix.short_name }}
-      MODELS: "gpt-5.3-codex claude-sonnet-4.6"
+      MODEL: "gpt-5.4"
+      COPILOT_OUTPUT: /tmp/copilot-output.jsonl
+      FINAL_ASSISTANT_MESSAGE: /tmp/final-assistant-message.txt
+      REVIEW_REPORT: /tmp/review-report.json
+      REVIEW_DIAGNOSTICS: /tmp/review-diagnostics.txt
+      PR_BODY: /tmp/pr-body.md
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Fetch progress branch
+        run: git fetch origin otelbot/code-review-progress || true
 
       - name: Free disk space
         run: .github/scripts/gha-free-disk-space.sh
@@ -68,7 +84,7 @@ jobs:
           java-version-file: .java-version
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@f29f5a9d7b09a7c6b29859002d29d24e1674c884 # v5.0.1
+        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.1.0
         with:
           cache-read-only: true
 
@@ -80,19 +96,109 @@ jobs:
       - name: Use CLA approved bot
         run: .github/scripts/use-cla-approved-bot.sh
 
+      - name: Check out review branch
+        run: |
+          branch="otelbot/code-review-${SHORT_NAME//:/-}"
+          git checkout -B "$branch" origin/main
+
       - name: Run Copilot review
+        id: copilot-review
         env:
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          COPILOT_REVIEW_PROMPT_TEMPLATE: >-
+            Review all files under __MODULE_DIR__. Apply safe repository-guideline fixes directly.
+            Return ONLY a valid JSON object as your final answer with this exact schema:
+            {"summary": string, "changes": [{"path": string, "category": string, "change": string, "reason": string, "line_hint": number|null}], "unresolved": [{"path": string, "reason": string}]}
+            Include one changes entry for every file you changed.
+            Use concise factual reasons that cite the review guideline or repository rule behind each change.
+            In `summary`, `change`, and `reason`, use Markdown inline code backticks around code-like constructs when helpful,
+            including annotations, class names, method names, field names, file names, Gradle tasks, commands, flags, and config keys.
+            If no safe fixes were applied, still return valid JSON with an empty changes array and a brief summary.
+            Do not write markdown and do not wrap the JSON in code fences.
         run: |
-          for model in $MODELS; do
-            echo "::group::Copilot review ($model) for $MODULE_DIR"
-            copilot -p "review all files under $MODULE_DIR. Write the fix review summary to /tmp/summary-${model}.md" \
-              --agent code-review-and-fix \
-              --model "$model" \
-              --yolo \
-              || echo "::warning::copilot ($model) exited with code $?"
+          rm -f "$COPILOT_OUTPUT"
+          rm -f "$FINAL_ASSISTANT_MESSAGE"
+          rm -f "$REVIEW_REPORT"
+          echo "::group::Copilot review ($MODEL) for $MODULE_DIR"
+          prompt=${COPILOT_REVIEW_PROMPT_TEMPLATE/__MODULE_DIR__/$MODULE_DIR}
+          copilot -p "$prompt" \
+            --agent code-review-and-fix \
+            --model "$MODEL" \
+            --output-format json \
+            --silent \
+            --stream off \
+            --yolo \
+            > "$COPILOT_OUTPUT"
+          echo "::endgroup::"
+
+      - name: Extract review report
+        id: extract-review-report
+        run: |
+          python .github/scripts/code-review-extract-report.py \
+            --input "$COPILOT_OUTPUT" \
+            --final-message-output "$FINAL_ASSISTANT_MESSAGE" \
+            --output "$REVIEW_REPORT"
+          echo "::group::Extracted review report"
+          python -m json.tool "$REVIEW_REPORT"
+          echo "::endgroup::"
+
+      - name: Generate review diagnostics
+        if: always()
+        run: |
+          python .github/scripts/code-review-jsonl-diagnostics.py --input "$COPILOT_OUTPUT" > "$REVIEW_DIAGNOSTICS"
+
+      - name: Dump review diagnostics on failure
+        if: failure()
+        run: |
+          echo "::group::Copilot JSONL diagnostics"
+          cat "$REVIEW_DIAGNOSTICS"
+          echo "::endgroup::"
+
+          if [[ -f "$FINAL_ASSISTANT_MESSAGE" ]]; then
+            echo "::group::Extracted final assistant message"
+            cat "$FINAL_ASSISTANT_MESSAGE"
             echo "::endgroup::"
-          done
+          fi
+
+          if [[ -f "$REVIEW_REPORT" ]]; then
+            echo "::group::Partial extracted review report"
+            cat "$REVIEW_REPORT"
+            echo "::endgroup::"
+          fi
+
+          if [[ -f "$COPILOT_OUTPUT" ]]; then
+            echo "::group::Raw Copilot JSONL"
+            cat "$COPILOT_OUTPUT"
+            echo "::endgroup::"
+          fi
+
+      - name: Prepare diagnostics artifact name
+        if: always()
+        id: diagnostics-artifact-name
+        run: |
+          echo "name=code-review-diagnostics-${SHORT_NAME//:/-}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload review diagnostics artifact
+        if: always()
+        id: upload-review-diagnostics
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.diagnostics-artifact-name.outputs.name }}
+          path: |
+            /tmp/copilot-output.jsonl
+            /tmp/final-assistant-message.txt
+            /tmp/review-report.json
+            /tmp/review-diagnostics.txt
+          if-no-files-found: ignore
+
+      - name: Prepare PR body
+        run: |
+          python .github/scripts/code-review-pr-body.py \
+            --input "$REVIEW_REPORT" \
+            --output "$PR_BODY" \
+            --module-dir "$MODULE_DIR" \
+            --model "$MODEL" \
+            --artifact-url "${{ steps.upload-review-diagnostics.outputs.artifact-url }}"
 
       - name: Commit and push fixes
         id: commit
@@ -122,19 +228,10 @@ jobs:
           git commit -m "Review fixes for ${SHORT_NAME}" \
                      -m "Automated code review of ${MODULE_DIR}."
 
-          git checkout -b "$branch"
           git push -f origin "$branch"
           echo "pushed=true" >> "$GITHUB_OUTPUT"
 
-      - name: Prepare PR body
-        run: |
-          > /tmp/pr-body.md
-          for model in $MODELS; do
-            f="/tmp/summary-${model}.md"
-            [[ -s "$f" ]] && cat "$f" >> /tmp/pr-body.md && echo >> /tmp/pr-body.md
-          done
-
-      - uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+      - uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3 # v3.1.1
         id: otelbot-token
         if: steps.commit.outputs.pushed == 'true'
         with:
@@ -142,7 +239,7 @@ jobs:
           private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}
 
       - name: Create PR
-        if: steps.otelbot-token.outcome == 'success'
+        if: steps.commit.outputs.pushed == 'true'
         env:
           GH_TOKEN: ${{ steps.otelbot-token.outputs.token }}
         run: |
@@ -152,45 +249,41 @@ jobs:
           if [[ "$existing" -eq 0 ]]; then
             gh pr create \
               --title "Review fixes for ${SHORT_NAME}" \
-              --body-file /tmp/pr-body.md \
+              --body-file "$PR_BODY" \
               --base main \
               --head "$branch" \
-              --label automated-code-review
+              --label "automated code review"
           else
             echo "PR already exists for $branch — skipping creation"
           fi
 
-  # ---------------------------------------------------------------------------
-  # Job 3: Record reviewed modules only when the entire batch succeeded
-  # ---------------------------------------------------------------------------
-  finalize:
-    needs: [dispatch, review]
-    if: needs.review.result == 'success'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Restore progress cache
-        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
-        with:
-          path: /tmp/review-progress
-          key: code-review-progress
-          restore-keys: code-review-progress-
-
-      - name: Mark batch as reviewed
+      - name: Ensure progress branch exists
         run: |
-          mkdir -p /tmp/review-progress
-          touch /tmp/review-progress/reviewed.txt
+          if ! git rev-parse --verify origin/otelbot/code-review-progress >/dev/null 2>&1; then
+            git checkout --orphan otelbot/code-review-progress
+            git reset --hard
+            git commit --allow-empty -m "Initialize progress tracking"
+            git push origin HEAD:otelbot/code-review-progress || true
+          fi
 
-          matrix='${{ needs.dispatch.outputs.matrix }}'
-          for name in $(echo "$matrix" | jq -r '.include[].short_name'); do
-            echo "$name" >> /tmp/review-progress/reviewed.txt
-            echo "Marking as reviewed: $name"
-          done
-
-          sort -u /tmp/review-progress/reviewed.txt -o /tmp/review-progress/reviewed.txt
-          echo "Total reviewed modules: $(wc -l < /tmp/review-progress/reviewed.txt)"
-
-      - name: Save progress cache
-        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      - name: Check out progress branch
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          path: /tmp/review-progress
-          key: code-review-progress-${{ github.run_id }}
+          ref: otelbot/code-review-progress
+          path: progress
+
+      - name: Mark module as reviewed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd progress
+
+          git config user.name otelbot
+          git config user.email 197425009+otelbot@users.noreply.github.com
+
+          # Append this module (one per line, matching build-review-matrix.py)
+          echo "$SHORT_NAME" >> reviewed.txt
+
+          git add reviewed.txt
+          git commit -m "Mark $SHORT_NAME as reviewed"
+          git push origin HEAD:otelbot/code-review-progress

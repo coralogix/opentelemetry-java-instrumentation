@@ -90,6 +90,7 @@ public final class TracingExecutionInterceptor implements ExecutionInterceptor {
       new ExecutionAttribute<>(TracingExecutionInterceptor.class.getName() + ".RequestFinisher");
   static final ExecutionAttribute<TracingList> TRACING_MESSAGES_ATTRIBUTE =
       new ExecutionAttribute<>(TracingExecutionInterceptor.class.getName() + ".TracingMessages");
+  private static final RequestHeaderSetter requestHeaderSetter = new RequestHeaderSetter();
 
   private final Instrumenter<ExecutionAttributes, Response> requestInstrumenter;
   private final Instrumenter<SqsReceiveRequest, Response> consumerReceiveInstrumenter;
@@ -248,10 +249,10 @@ public final class TracingExecutionInterceptor implements ExecutionInterceptor {
         executionAttributes.putAttribute(AWS_SDK_REQUEST_ATTRIBUTE, awsSdkRequest);
         populateRequestAttributes(span, awsSdkRequest, context.request(), executionAttributes);
       }
-    } catch (Throwable throwable) {
-      requestFinisher.finish(otelContext, executionAttributes, null, throwable);
+    } catch (Throwable t) {
+      requestFinisher.finish(otelContext, executionAttributes, null, t);
       clearAttributes(executionAttributes);
-      throw throwable;
+      throw t;
     }
 
     SdkRequest modifiedRequest =
@@ -369,7 +370,7 @@ public final class TracingExecutionInterceptor implements ExecutionInterceptor {
     }
 
     SdkHttpRequest.Builder builder = httpRequest.toBuilder();
-    AwsXrayPropagator.getInstance().inject(otelContext, builder, RequestHeaderSetter.INSTANCE);
+    AwsXrayPropagator.getInstance().inject(otelContext, builder, requestHeaderSetter);
     return builder.build();
   }
 

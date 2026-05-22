@@ -20,7 +20,7 @@ import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.S
 import io.opentelemetry.javaagent.bootstrap.internal.AgentCommonConfig;
 import java.time.Duration;
 
-public final class AwsLambdaSingletons {
+public class AwsLambdaSingletons {
   private static final String INSTRUMENTATION_NAME = "io.opentelemetry.aws-lambda-events-2.2";
   private static final Triggers TRIGGERS =
       new Triggers(

@@ -8,14 +8,12 @@ package io.opentelemetry.javaagent.instrumentation.awslambdaevents.v2_2;
 import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;
 import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.implementsInterface;
 import static io.opentelemetry.javaagent.instrumentation.awslambdaevents.v2_2.AwsLambdaSingletons.flushTimeout;
-import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
-import java.util.Collections;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;
@@ -23,6 +21,7 @@ import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.MapUtils;
 import io.opentelemetry.javaagent.bootstrap.OpenTelemetrySdkAccess;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import net.bytebuddy.asm.Advice;
@@ -30,7 +29,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner.Typing;
 import net.bytebuddy.matcher.ElementMatcher;
 
-public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentation {
+class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentation {
 
   @Override
   public ElementMatcher<ClassLoader> classLoaderOptimization() {
@@ -45,11 +44,10 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
   @Override
   public void transform(TypeTransformer transformer) {
     transformer.applyAdviceToMethod(
-        isMethod()
-            .and(isPublic())
+        isPublic()
             .and(named("handleRequest"))
             .and(takesArgument(1, named("com.amazonaws.services.lambda.runtime.Context"))),
-        AwsLambdaRequestHandlerInstrumentation.class.getName() + "$HandleRequestAdvice");
+        getClass().getName() + "$HandleRequestAdvice");
   }
 
   @SuppressWarnings("unused")
@@ -61,7 +59,8 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
         @Advice.Argument(value = 0, typing = Typing.DYNAMIC) Object arg,
         @Advice.Argument(1) Context context,
         @Advice.Local("otelInput") AwsLambdaRequest input,
-        @Advice.Local("otelTriggerInstrumentation") Instrumenter<AwsLambdaRequest, Object> triggerInstrumentation,
+        @Advice.Local("otelTriggerInstrumentation")
+            Instrumenter<AwsLambdaRequest, Object> triggerInstrumentation,
         @Advice.Local("otelTriggerContext") io.opentelemetry.context.Context triggerContext,
         @Advice.Local("otelTriggerScope") Scope triggerScope,
         @Advice.Local("otelFunctionContext") io.opentelemetry.context.Context functionContext,
@@ -104,10 +103,11 @@ public class AwsLambdaRequestHandlerInstrumentation implements TypeInstrumentati
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
     public static void stopSpan(
         @Advice.Argument(value = 0, typing = Typing.DYNAMIC) Object arg,
-        @Advice.Return Object result,
+        @Advice.Return(typing = Typing.DYNAMIC) Object result,
         @Advice.Thrown Throwable throwable,
         @Advice.Local("otelInput") AwsLambdaRequest input,
-        @Advice.Local("otelTriggerInstrumentation") Instrumenter<AwsLambdaRequest, Object> triggerInstrumentation,
+        @Advice.Local("otelTriggerInstrumentation")
+            Instrumenter<AwsLambdaRequest, Object> triggerInstrumentation,
         @Advice.Local("otelTriggerContext") io.opentelemetry.context.Context triggerContext,
         @Advice.Local("otelTriggerScope") Scope triggerScope,
         @Advice.Local("otelFunctionContext") io.opentelemetry.context.Context functionContext,
