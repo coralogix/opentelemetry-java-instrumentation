@@ -16,6 +16,7 @@ public class Triggers {
   private final Trigger[] triggers;
   private final Instrumenter<AwsLambdaRequest, Object>[] instrumenters;
 
+  // The generic instrumenter array is populated once from the trigger list and read back by index.
   @SuppressWarnings({"unchecked", "rawtypes"})
   public Triggers(Trigger[] triggers, OpenTelemetry openTelemetry) {
     this.triggers = triggers;

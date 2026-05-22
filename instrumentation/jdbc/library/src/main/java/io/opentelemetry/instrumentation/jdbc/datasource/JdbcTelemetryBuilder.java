@@ -7,6 +7,8 @@ package io.opentelemetry.instrumentation.jdbc.datasource;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.SqlCommenter;
+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.SqlCommenterBuilder;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.jdbc.datasource.internal.Experimental;
 import io.opentelemetry.instrumentation.jdbc.internal.DbRequest;
@@ -18,23 +20,22 @@ import javax.sql.DataSource;
 public final class JdbcTelemetryBuilder {
 
   private final OpenTelemetry openTelemetry;
-  private boolean dataSourceInstrumenterEnabled = true;
+  private boolean dataSourceInstrumenterEnabled = false;
   private boolean statementInstrumenterEnabled = true;
   private boolean statementSanitizationEnabled = true;
   private boolean transactionInstrumenterEnabled = false;
   private boolean captureQueryParameters = false;
-  private boolean sqlCommenterEnabled = false;
+  private final SqlCommenterBuilder sqlCommenterBuilder = SqlCommenter.builder();
 
   static {
-    Experimental.internalSetEnableSqlCommenter(
-        (builder, sqlCommenterEnabled) -> builder.sqlCommenterEnabled = sqlCommenterEnabled);
+    Experimental.internalSetSqlCommenterBuilder(builder -> builder.sqlCommenterBuilder);
   }
 
   JdbcTelemetryBuilder(OpenTelemetry openTelemetry) {
     this.openTelemetry = openTelemetry;
   }
 
-  /** Configures whether spans are created for JDBC Connections. Enabled by default. */
+  /** Configures whether spans are created for JDBC Connections. Disabled by default. */
   @CanIgnoreReturnValue
   public JdbcTelemetryBuilder setDataSourceInstrumenterEnabled(boolean enabled) {
     this.dataSourceInstrumenterEnabled = enabled;
@@ -95,6 +96,6 @@ public final class JdbcTelemetryBuilder {
         statementInstrumenter,
         transactionInstrumenter,
         captureQueryParameters,
-        sqlCommenterEnabled);
+        sqlCommenterBuilder.build());
   }
 }

@@ -102,7 +102,6 @@ public final class TracingExecutionInterceptor implements ExecutionInterceptor {
   private static final int DEFAULT_OTEL_PAYLOAD_SIZE_LIMIT = 50 * 1024;
   private static final int OTEL_PAYLOAD_SIZE_LIMIT =
       ConfigPropertiesUtil.getInt("otel.payload-size-limit", DEFAULT_OTEL_PAYLOAD_SIZE_LIMIT);
-  private final boolean captureExperimentalSpanAttributes;
 
   static final AttributeKey<String> HTTP_ERROR_MSG =
       AttributeKey.stringKey("aws.http.error_message");
@@ -152,12 +151,11 @@ public final class TracingExecutionInterceptor implements ExecutionInterceptor {
     this.dynamoDbInstrumenter = dynamoDbInstrumenter;
     this.bedrockRuntimeInstrumenter = bedrockRuntimeInstrumenter;
     this.eventLogger = eventLogger;
-    this.captureExperimentalSpanAttributes = captureExperimentalSpanAttributes;
     this.messagingPropagator = messagingPropagator;
     this.useXrayPropagator = useXrayPropagator;
     this.recordIndividualHttpError = recordIndividualHttpError;
     this.genAiCaptureMessageContent = genAiCaptureMessageContent;
-    this.fieldMapper = new FieldMapper();
+    this.fieldMapper = new FieldMapper(captureExperimentalSpanAttributes);
   }
 
   @Override
@@ -170,6 +168,11 @@ public final class TracingExecutionInterceptor implements ExecutionInterceptor {
 
     io.opentelemetry.context.Context parentOtelContext = io.opentelemetry.context.Context.current();
     SdkRequest request = context.request();
+
+    // the request has already been modified, duplicate interceptor?
+    if (executionAttributes.getAttribute(SDK_REQUEST_ATTRIBUTE) != null) {
+      return request;
+    }
 
     // Ignore presign request. These requests don't run all interceptor methods and the span created
     // here would never be ended and scope closed.
@@ -456,11 +459,9 @@ public final class TracingExecutionInterceptor implements ExecutionInterceptor {
       BedrockRuntimeAccess.recordResponseEvents(
           otelContext, eventLogger, executionAttributes, response, genAiCaptureMessageContent);
     }
-    if (captureExperimentalSpanAttributes) {
-      AwsSdkRequest sdkRequest = executionAttributes.getAttribute(AWS_SDK_REQUEST_ATTRIBUTE);
-      if (sdkRequest != null) {
-        fieldMapper.mapToAttributes(response, sdkRequest, span);
-      }
+    AwsSdkRequest sdkRequest = executionAttributes.getAttribute(AWS_SDK_REQUEST_ATTRIBUTE);
+    if (sdkRequest != null) {
+      fieldMapper.mapToAttributes(response, sdkRequest, span);
     }
   }
 

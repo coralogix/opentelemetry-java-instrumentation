@@ -5,6 +5,7 @@
 
 package io.opentelemetry.javaagent.bootstrap;
 
+import java.security.ProtectionDomain;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
@@ -37,15 +38,31 @@ public final class InjectedClassHelper {
     return helperClassDetector.test(classLoader, className);
   }
 
+  private static volatile BiFunction<ClassLoader, String, HelperClassInfo> helperClassInfo;
   private static volatile BiFunction<ClassLoader, String, Class<?>> helperClassLoader;
+
+  public static void internalSetHelperClassInfo(
+      BiFunction<ClassLoader, String, HelperClassInfo> helperClassInfo) {
+    if (InjectedClassHelper.helperClassInfo != null) {
+      // Only possible by misuse of this API, just ignore.
+      return;
+    }
+    InjectedClassHelper.helperClassInfo = helperClassInfo;
+  }
 
   public static void internalSetHelperClassLoader(
       BiFunction<ClassLoader, String, Class<?>> helperClassLoader) {
     if (InjectedClassHelper.helperClassLoader != null) {
-      // Only possible by misuse of this API, just ignore.
       return;
     }
     InjectedClassHelper.helperClassLoader = helperClassLoader;
+  }
+
+  public static HelperClassInfo getHelperClassInfo(ClassLoader classLoader, String className) {
+    if (helperClassInfo == null) {
+      return null;
+    }
+    return helperClassInfo.apply(classLoader, className);
   }
 
   public static Class<?> loadHelperClass(ClassLoader classLoader, String className) {
@@ -53,5 +70,11 @@ public final class InjectedClassHelper {
       return null;
     }
     return helperClassLoader.apply(classLoader, className);
+  }
+
+  public interface HelperClassInfo {
+    byte[] getClassBytes();
+
+    ProtectionDomain getProtectionDomain();
   }
 }

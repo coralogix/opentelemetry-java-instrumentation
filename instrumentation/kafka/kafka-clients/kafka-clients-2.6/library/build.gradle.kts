@@ -20,29 +20,35 @@ tasks {
   withType<Test>().configureEach {
     usesService(gradle.sharedServices.registrations["testcontainersBuildService"].service)
     systemProperty("testLatestDeps", findProperty("testLatestDeps") as Boolean)
-  }
-
-  val testReceiveSpansDisabled by registering(Test::class) {
-    testClassesDirs = sourceSets.test.get().output.classesDirs
-    classpath = sourceSets.test.get().runtimeClasspath
-    filter {
-      includeTestsMatching("InterceptorsSuppressReceiveSpansTest")
-      includeTestsMatching("WrapperSuppressReceiveSpansTest")
-    }
-    include("**/InterceptorsSuppressReceiveSpansTest.*", "**/WrapperSuppressReceiveSpansTest.*")
+    systemProperty("collectMetadata", findProperty("collectMetadata")?.toString() ?: "false")
   }
 
   test {
     filter {
-      excludeTestsMatching("InterceptorsSuppressReceiveSpansTest")
-      excludeTestsMatching("WrapperSuppressReceiveSpansTest")
+      excludeTestsMatching("*Deprecated*")
     }
-    jvmArgs("-Dotel.instrumentation.messaging.experimental.receive-telemetry.enabled=true")
+  }
+
+  val testDeprecated by registering(Test::class) {
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    filter {
+      includeTestsMatching("*DeprecatedInterceptorsTest")
+    }
+    systemProperty("otel.instrumentation.messaging.experimental.receive-telemetry.enabled", "true")
     systemProperty("otel.instrumentation.messaging.experimental.capture-headers", "Test-Message-Header")
   }
 
+  val testDeprecatedSuppressReceiveSpans by registering(Test::class) {
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    filter {
+      includeTestsMatching("*DeprecatedInterceptorsSuppressReceiveSpansTest")
+    }
+  }
+
   check {
-    dependsOn(testReceiveSpansDisabled)
+    dependsOn(testDeprecated, testDeprecatedSuppressReceiveSpans)
   }
 }
 

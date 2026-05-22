@@ -189,6 +189,9 @@ targets:
       target: ':instrumentation:jdbc:library'
     - type: gradle
       path: ./
+      target: ':instrumentation:jfinal-3.2:javaagent'
+    - type: gradle
+      path: ./
       target: ':instrumentation:jmx-metrics:javaagent'
     - type: gradle
       path: ./
@@ -339,6 +342,12 @@ targets:
       target: ':instrumentation:armeria:armeria-grpc-1.14:javaagent'
     - type: gradle
       path: ./
+      target: ':instrumentation:async-http-client:async-http-client-1-common:javaagent'
+    - type: gradle
+      path: ./
+      target: ':instrumentation:async-http-client:async-http-client-1.8:javaagent'
+    - type: gradle
+      path: ./
       target: ':instrumentation:async-http-client:async-http-client-1.9:javaagent'
     - type: gradle
       path: ./
@@ -390,6 +399,9 @@ targets:
       target: ':instrumentation:azure-core:azure-core-1.36:javaagent'
     - type: gradle
       path: ./
+      target: ':instrumentation:azure-core:azure-core-1.53:javaagent'
+    - type: gradle
+      path: ./
       target: ':instrumentation:cassandra:cassandra-3.0:javaagent'
     - type: gradle
       path: ./
@@ -427,6 +439,9 @@ targets:
     - type: gradle
       path: ./
       target: ':instrumentation:couchbase:couchbase-3.2:javaagent'
+    - type: gradle
+      path: ./
+      target: ':instrumentation:couchbase:couchbase-3.4:javaagent'
     - type: gradle
       path: ./
       target: ':instrumentation:dropwizard:dropwizard-metrics-4.0:javaagent'
@@ -814,6 +829,9 @@ targets:
     - type: gradle
       path: ./
       target: ':instrumentation:opentelemetry-api:opentelemetry-api-1.52:javaagent'
+    - type: gradle
+      path: ./
+      target: ':instrumentation:opentelemetry-api:opentelemetry-api-1.56:javaagent'
     - type: gradle
       path: ./
       target: ':instrumentation:pekko:pekko-actor-1.0:javaagent'
