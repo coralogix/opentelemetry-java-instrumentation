@@ -6,6 +6,7 @@
 package io.opentelemetry.javaagent.bootstrap;
 
 import io.opentelemetry.context.Context;
+import io.opentelemetry.instrumentation.api.internal.Initializer;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -44,6 +45,7 @@ public final class OpenTelemetrySdkAccess {
    * from the agent class loader to execute the SDK's force flush mechanism. Instrumentation must
    * not call this.
    */
+  @Initializer
   public static void internalSetForceFlush(ForceFlusher forceFlush) {
     if (OpenTelemetrySdkAccess.forceFlush != null) {
       // Only possible by misuse of this API, just ignore.
@@ -63,7 +65,8 @@ public final class OpenTelemetrySdkAccess {
   private static volatile EarlySpans earlySpans;
 
   /** Sends copies of trigger and function spans early. */
-  public static void sendEarlySpans(Context upstreamContext, Context triggerContext, Context functionContext) {
+  public static void sendEarlySpans(
+      Context upstreamContext, Context triggerContext, Context functionContext) {
     earlySpans.sendEarlySpans(upstreamContext, triggerContext, functionContext);
   }
 
@@ -71,6 +74,7 @@ public final class OpenTelemetrySdkAccess {
    * Sets the earlySpans. This is called
    * from the agent class loader to execute the SDK's mechanism. Instrumentation must not call this.
    */
+  @Initializer
   public static void internalSetEarlySpans(EarlySpans earlySpans) {
     if (OpenTelemetrySdkAccess.earlySpans == null) {
       OpenTelemetrySdkAccess.earlySpans = earlySpans;

@@ -6,8 +6,6 @@
 package io.opentelemetry.instrumentation.api.incubator.semconv.db;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
 import javax.annotation.Nullable;
 
 /**
@@ -64,32 +62,15 @@ public interface SqlClientAttributesGetter<REQUEST, RESPONSE>
   Collection<String> getRawQueryTexts(REQUEST request);
 
   /**
-   * @deprecated Use {@link DbClientAttributesGetter#getDbOperationBatchSize(Object)} instead.
+   * Returns whether the query is parameterized. Prepared statements are always considered
+   * parameterized even if no parameters are bound. By using a parameterized query the user is
+   * giving a strong signal that any sensitive data will be passed as parameter values, and so the
+   * query does not need to be sanitized. See <a
+   * href="https://github.com/open-telemetry/semantic-conventions/blob/main/docs/db/database-spans.md#sanitization-of-dbquerytext">sanitization
+   * of db.query.text</a>.
    */
-  @Deprecated
-  @Nullable
-  default Long getBatchSize(REQUEST request) {
-    return null;
-  }
-
-  @Override
-  @Nullable
-  // TODO remove this override when getBatchSize is removed
-  default Long getDbOperationBatchSize(REQUEST request) {
-    return getBatchSize(request);
-  }
-
-  /**
-   * @deprecated Use {@link DbClientAttributesGetter#getDbQueryParameters(Object)} instead.
-   */
-  @Deprecated
-  default Map<String, String> getQueryParameters(REQUEST request) {
-    return Collections.emptyMap();
-  }
-
-  @Override
-  // TODO remove this override when getQueryParameters is removed
-  default Map<String, String> getDbQueryParameters(REQUEST request) {
-    return getQueryParameters(request);
+  // TODO: make this required to implement
+  default boolean isParameterizedQuery(REQUEST request) {
+    return false;
   }
 }

@@ -27,25 +27,49 @@ public final class JettyClientTelemetry {
     return new JettyClientTelemetryBuilder(openTelemetry);
   }
 
-  private final HttpClient httpClient;
   private final Instrumenter<Request, Response> instrumenter;
 
-  JettyClientTelemetry(HttpClient httpClient, Instrumenter<Request, Response> instrumenter) {
-    this.httpClient = httpClient;
+  JettyClientTelemetry(Instrumenter<Request, Response> instrumenter) {
     this.instrumenter = instrumenter;
   }
 
   /**
-   * @deprecated Use {@link #newHttpClient()}, {@link #newHttpClient(SslContextFactory)}, or {@link
-   *     #newHttpClient(HttpClientTransport, SslContextFactory)} instead.
+   * Returns an instrumented HTTP client.
+   *
+   * @deprecated Use {@link #createHttpClient()} instead.
    */
   @Deprecated
-  public HttpClient getHttpClient() {
-    return httpClient;
+  public HttpClient newHttpClient() {
+    return createHttpClient();
+  }
+
+  /**
+   * Returns a new {@link HttpClient} with the specified SSL context factory and tracing configured.
+   *
+   * @param sslContextFactory the SSL context factory to use for HTTPS support
+   * @deprecated Use {@link #createHttpClient(SslContextFactory)} instead.
+   */
+  @Deprecated
+  public HttpClient newHttpClient(SslContextFactory sslContextFactory) {
+    return createHttpClient(sslContextFactory);
+  }
+
+  /**
+   * Returns a new {@link HttpClient} with the specified transport and SSL context factory and
+   * tracing configured.
+   *
+   * @param httpClientTransport the HTTP client transport to use
+   * @param sslContextFactory the SSL context factory to use
+   * @deprecated Use {@link #createHttpClient(HttpClientTransport, SslContextFactory)} instead.
+   */
+  @Deprecated
+  public HttpClient newHttpClient(
+      HttpClientTransport httpClientTransport, SslContextFactory sslContextFactory) {
+    return createHttpClient(httpClientTransport, sslContextFactory);
   }
 
   /** Returns an instrumented HTTP client. */
-  public HttpClient newHttpClient() {
+  public HttpClient createHttpClient() {
     return new TracingHttpClient(instrumenter);
   }
 
@@ -54,7 +78,7 @@ public final class JettyClientTelemetry {
    *
    * @param sslContextFactory the SSL context factory to use for HTTPS support
    */
-  public HttpClient newHttpClient(SslContextFactory sslContextFactory) {
+  public HttpClient createHttpClient(SslContextFactory sslContextFactory) {
     return new TracingHttpClient(instrumenter, sslContextFactory);
   }
 
@@ -65,7 +89,7 @@ public final class JettyClientTelemetry {
    * @param httpClientTransport the HTTP client transport to use
    * @param sslContextFactory the SSL context factory to use
    */
-  public HttpClient newHttpClient(
+  public HttpClient createHttpClient(
       HttpClientTransport httpClientTransport, SslContextFactory sslContextFactory) {
     return new TracingHttpClient(instrumenter, httpClientTransport, sslContextFactory);
   }

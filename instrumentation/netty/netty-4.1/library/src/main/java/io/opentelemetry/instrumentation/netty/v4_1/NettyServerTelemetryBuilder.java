@@ -10,8 +10,9 @@ import io.netty.handler.codec.http.HttpResponse;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.api.incubator.builder.internal.DefaultHttpServerInstrumenterBuilder;
 import io.opentelemetry.instrumentation.api.instrumenter.SpanNameExtractor;
+import io.opentelemetry.instrumentation.api.internal.InstrumenterUtil;
 import io.opentelemetry.instrumentation.api.semconv.http.HttpServerAttributesExtractorBuilder;
-import io.opentelemetry.instrumentation.netty.common.v4_0.NettyRequest;
+import io.opentelemetry.instrumentation.netty.common.v4_0.internal.NettyCommonRequest;
 import io.opentelemetry.instrumentation.netty.common.v4_0.internal.server.HttpRequestHeadersGetter;
 import io.opentelemetry.instrumentation.netty.common.v4_0.internal.server.NettyHttpServerAttributesGetter;
 import io.opentelemetry.instrumentation.netty.v4_1.internal.Experimental;
@@ -23,7 +24,7 @@ import java.util.function.UnaryOperator;
 /** Builder for {@link NettyServerTelemetry}. */
 public final class NettyServerTelemetryBuilder {
 
-  private final DefaultHttpServerInstrumenterBuilder<NettyRequest, HttpResponse> builder;
+  private final DefaultHttpServerInstrumenterBuilder<NettyCommonRequest, HttpResponse> builder;
 
   private boolean emitExperimentalHttpServerEvents = false;
 
@@ -44,21 +45,6 @@ public final class NettyServerTelemetryBuilder {
             openTelemetry,
             new NettyHttpServerAttributesGetter(),
             HttpRequestHeadersGetter.INSTANCE);
-  }
-
-  /**
-   * Configures emission of experimental events.
-   *
-   * @param emitExperimentalHttpServerEvents set to true to emit events
-   * @deprecated Use {@link Experimental#setEmitExperimentalTelemetry(NettyServerTelemetryBuilder,
-   *     boolean)} instead.
-   */
-  @Deprecated
-  @CanIgnoreReturnValue
-  public NettyServerTelemetryBuilder setEmitExperimentalHttpServerEvents(
-      boolean emitExperimentalHttpServerEvents) {
-    this.emitExperimentalHttpServerEvents = emitExperimentalHttpServerEvents;
-    return this;
   }
 
   /**
@@ -107,7 +93,9 @@ public final class NettyServerTelemetryBuilder {
   @CanIgnoreReturnValue
   public NettyServerTelemetryBuilder setSpanNameExtractorCustomizer(
       UnaryOperator<SpanNameExtractor<NettyRequest>> spanNameExtractorCustomizer) {
-    builder.setSpanNameExtractorCustomizer(spanNameExtractorCustomizer);
+    builder.setSpanNameExtractorCustomizer(
+        InstrumenterUtil.convertSpanNameExtractor(
+            spanNameExtractorCustomizer, NettyRequest::delegate, NettyRequest::create));
     return this;
   }
 

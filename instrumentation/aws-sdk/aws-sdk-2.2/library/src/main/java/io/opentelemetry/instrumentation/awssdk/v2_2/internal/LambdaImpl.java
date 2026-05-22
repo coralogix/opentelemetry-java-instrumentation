@@ -49,7 +49,8 @@ final class LambdaImpl {
       return null;
     }
     if (isDirectLambdaInvocation(request)) {
-      return modifyOrAddCustomContextHeader((InvokeRequest) request, otelContext, messagingPropagator);
+      return modifyOrAddCustomContextHeader(
+          (InvokeRequest) request, otelContext, messagingPropagator);
     }
     return null;
   }
@@ -75,7 +76,8 @@ final class LambdaImpl {
     JsonNode customNode =
         jsonNode
             .asObject()
-            .computeIfAbsent(CLIENT_CONTEXT_CUSTOM_FIELDS_KEY, k -> new ObjectJsonNode(new LinkedHashMap<>()));
+            .computeIfAbsent(
+                CLIENT_CONTEXT_CUSTOM_FIELDS_KEY, k -> new ObjectJsonNode(new LinkedHashMap<>()));
     if (!customNode.isObject()) {
       return null;
     }
