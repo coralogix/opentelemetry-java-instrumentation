@@ -16,18 +16,12 @@ import org.apache.hc.core5.http.HttpResponse;
 /** Entrypoint for instrumenting Apache HTTP Client. */
 public final class ApacheHttpClientTelemetry {
 
-  /**
-   * Returns a new {@link ApacheHttpClientTelemetry} configured with the given {@link
-   * OpenTelemetry}.
-   */
+  /** Returns a new instance configured with the given {@link OpenTelemetry} instance. */
   public static ApacheHttpClientTelemetry create(OpenTelemetry openTelemetry) {
     return builder(openTelemetry).build();
   }
 
-  /**
-   * Returns a new {@link ApacheHttpClientTelemetryBuilder} configured with the given {@link
-   * OpenTelemetry}.
-   */
+  /** Returns a builder configured with the given {@link OpenTelemetry} instance. */
   public static ApacheHttpClientTelemetryBuilder builder(OpenTelemetry openTelemetry) {
     return new ApacheHttpClientTelemetryBuilder(openTelemetry);
   }
@@ -42,17 +36,37 @@ public final class ApacheHttpClientTelemetry {
     this.propagators = propagators;
   }
 
-  /** Returns a new {@link CloseableHttpClient} with tracing configured. */
-  public CloseableHttpClient newHttpClient() {
-    return newHttpClientBuilder().build();
+  /** Returns an instrumented HTTP client. */
+  public CloseableHttpClient createHttpClient() {
+    return createHttpClientBuilder().build();
   }
 
-  /** Returns a new {@link HttpClientBuilder} to create a client with tracing configured. */
-  public HttpClientBuilder newHttpClientBuilder() {
+  /**
+   * Returns an instrumented HTTP client.
+   *
+   * @deprecated Use {@link #createHttpClient()} instead.
+   */
+  @Deprecated
+  public CloseableHttpClient newHttpClient() {
+    return createHttpClient();
+  }
+
+  /** Returns a builder for creating an instrumented HTTP client. */
+  public HttpClientBuilder createHttpClientBuilder() {
     return HttpClientBuilder.create()
         .addExecInterceptorAfter(
             ChainElement.PROTOCOL.name(),
             "OtelExecChainHandler",
             new OtelExecChainHandler(instrumenter, propagators));
+  }
+
+  /**
+   * Returns a builder for creating an instrumented HTTP client.
+   *
+   * @deprecated Use {@link #createHttpClientBuilder()} instead.
+   */
+  @Deprecated
+  public HttpClientBuilder newHttpClientBuilder() {
+    return createHttpClientBuilder();
   }
 }

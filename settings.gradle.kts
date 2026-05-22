@@ -1,7 +1,7 @@
 pluginManagement {
   plugins {
     id("com.github.jk1.dependency-license-report") version "3.0.1"
-    id("com.google.cloud.tools.jib") version "3.5.1"
+    id("com.google.cloud.tools.jib") version "3.5.2"
     id("com.gradle.plugin-publish") version "2.0.0"
     id("io.github.gradle-nexus.publish-plugin") version "2.0.0"
     id("org.jetbrains.kotlin.jvm") version "2.2.21"
@@ -9,7 +9,7 @@ pluginManagement {
     id("com.github.bjornvester.xjc") version "1.9.0"
     id("org.graalvm.buildtools.native") version "0.11.3"
     id("com.google.osdetector") version "1.7.3"
-    id("com.google.protobuf") version "0.9.5"
+    id("com.google.protobuf") version "0.9.6"
   }
 }
 
@@ -19,10 +19,10 @@ plugins {
   // this can't live in pluginManagement currently due to
   // https://github.com/bmuschko/gradle-docker-plugin/issues/1123
   // in particular, these commands are failing (reproducible locally):
-  // ./gradlew :smoke-tests:images:servlet:buildLinuxTestImages pushMatrix -PsmokeTestServer=jetty
-  // ./gradlew :smoke-tests:images:servlet:buildWindowsTestImages pushMatrix -PsmokeTestServer=jetty
+  // ./gradlew :smoke-tests:images:servlet:pushLinuxImages -PsmokeTestServer=jetty
+  // ./gradlew :smoke-tests:images:servlet:pushWindowsImages -PsmokeTestServer=jetty
   id("com.bmuschko.docker-remote-api") version "10.0.0" apply false
-  id("com.gradle.develocity") version "4.3"
+  id("com.gradle.develocity") version "4.3.1"
 }
 
 dependencyResolutionManagement {
@@ -151,6 +151,8 @@ include(":smoke-tests:images:servlet")
 include(":smoke-tests:images:servlet:servlet-3.0")
 include(":smoke-tests:images:servlet:servlet-5.0")
 include(":smoke-tests:images:spring-boot")
+include(":smoke-tests:extensions:testapp")
+include(":smoke-tests:extensions:extension")
 
 include(":smoke-tests-otel-starter:spring-smoke-testing")
 include(":smoke-tests-otel-starter:spring-boot-2")
@@ -571,11 +573,11 @@ include(":instrumentation:restlet:restlet-2.0:library")
 include(":instrumentation:restlet:restlet-2.0:testing")
 include(":instrumentation:rmi:bootstrap")
 include(":instrumentation:rmi:javaagent")
-include(":instrumentation:rocketmq:rocketmq-client:rocketmq-client-4.8:javaagent")
-include(":instrumentation:rocketmq:rocketmq-client:rocketmq-client-4.8:library")
-include(":instrumentation:rocketmq:rocketmq-client:rocketmq-client-4.8:testing")
-include(":instrumentation:rocketmq:rocketmq-client:rocketmq-client-5.0:javaagent")
-include(":instrumentation:rocketmq:rocketmq-client:rocketmq-client-5.0:testing")
+include(":instrumentation:rocketmq:rocketmq-client-4.8:javaagent")
+include(":instrumentation:rocketmq:rocketmq-client-4.8:library")
+include(":instrumentation:rocketmq:rocketmq-client-4.8:testing")
+include(":instrumentation:rocketmq:rocketmq-client-5.0:javaagent")
+include(":instrumentation:rocketmq:rocketmq-client-5.0:testing")
 include(":instrumentation:runtime-telemetry:runtime-telemetry-java8:javaagent")
 include(":instrumentation:runtime-telemetry:runtime-telemetry-java8:library")
 include(":instrumentation:runtime-telemetry:runtime-telemetry-java8:testing")

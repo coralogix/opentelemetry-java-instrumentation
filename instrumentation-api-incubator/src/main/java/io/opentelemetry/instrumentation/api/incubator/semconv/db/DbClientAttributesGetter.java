@@ -7,6 +7,8 @@ package io.opentelemetry.instrumentation.api.incubator.semconv.db;
 
 import io.opentelemetry.instrumentation.api.semconv.network.NetworkAttributesGetter;
 import io.opentelemetry.instrumentation.api.semconv.network.ServerAttributesGetter;
+import java.util.Collections;
+import java.util.Map;
 import javax.annotation.Nullable;
 
 /**
@@ -60,5 +62,36 @@ public interface DbClientAttributesGetter<REQUEST, RESPONSE>
   @Nullable
   default String getDbOperationName(REQUEST request) {
     return getOperation(request);
+  }
+
+  // TODO: make this required to implement
+  default String getDbSystemName(REQUEST request) {
+    return getDbSystem(request);
+  }
+
+  /**
+   * @deprecated Use {@link #getDbResponseStatusCode(RESPONSE, Throwable)} instead.
+   */
+  @Deprecated
+  @Nullable
+  default String getResponseStatusCode(@Nullable RESPONSE response, @Nullable Throwable error) {
+    return getResponseStatus(response, error);
+  }
+
+  // TODO: make this required to implement
+  @Nullable
+  default String getDbResponseStatusCode(@Nullable RESPONSE response, @Nullable Throwable error) {
+    return getResponseStatusCode(response, error);
+  }
+
+  // TODO: make this required to implement
+  @Nullable
+  default Long getDbOperationBatchSize(REQUEST request) {
+    return null;
+  }
+
+  // TODO: make this required to implement
+  default Map<String, String> getDbQueryParameters(REQUEST request) {
+    return Collections.emptyMap();
   }
 }

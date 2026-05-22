@@ -7,8 +7,11 @@ package io.opentelemetry.javaagent.tooling;
 
 import static io.opentelemetry.api.incubator.config.DeclarativeConfigProperties.empty;
 
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.incubator.ExtendedOpenTelemetry;
 import io.opentelemetry.api.incubator.config.ConfigProvider;
 import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;
+import io.opentelemetry.instrumentation.config.bridge.ConfigPropertiesBackedConfigProvider;
 import io.opentelemetry.instrumentation.config.bridge.DeclarativeConfigPropertiesBridgeBuilder;
 import io.opentelemetry.javaagent.bootstrap.OpenTelemetrySdkAccess;
 import io.opentelemetry.javaagent.tooling.config.EarlyInitAgentConfig;
@@ -30,42 +33,46 @@ public final class OpenTelemetryInstaller {
    * @return the {@link AutoConfiguredOpenTelemetrySdk}
   */
   public static AutoConfiguredOpenTelemetrySdk installOpenTelemetrySdk(
-      ClassLoader extensionClassLoader, EarlyInitAgentConfig earlyConfig) {
+      ClassLoader extensionClassLoader) {
 
     AutoConfiguredOpenTelemetrySdk autoConfiguredSdk =
         AutoConfiguredOpenTelemetrySdk.builder()
-            .setResultAsGlobal()
+            // Don't use setResultAsGlobal() - we need to wrap the SDK before setting as global
             .setServiceClassLoader(extensionClassLoader)
             .build();
-    ConfigProvider configProvider = AutoConfigureUtil.getConfigProvider(autoConfiguredSdk);
     OpenTelemetrySdk sdk = autoConfiguredSdk.getOpenTelemetrySdk();
-
-    setForceFlush(sdk);
-
-    OpenTelemetrySdkAccess.internalSetEarlySpans(new SdkEarlySpans(sdk));
-
-    if (configProvider != null) {
-      return SdkAutoconfigureAccess.create(
-          sdk,
-          SdkAutoconfigureAccess.getResource(autoConfiguredSdk),
-          getDeclarativeConfigBridgedProperties(earlyConfig, configProvider),
-          configProvider);
+    ConfigProperties configProperties = AutoConfigureUtil.getConfig(autoConfiguredSdk);
+    if (configProperties != null) {
+      // Provide a fake declarative configuration based on config properties
+      // so that declarative configuration API can be used everywhere
+      sdk =
+          new ExtendedOpenTelemetrySdkWrapper(
+              sdk, ConfigPropertiesBackedConfigProvider.create(configProperties));
+    } else {
+      // Provide a fake ConfigProperties until we have migrated all runtime configuration
+      // access to use declarative configuration API
+      configProperties =
+          getDeclarativeConfigBridgedProperties(((ExtendedOpenTelemetry) sdk).getConfigProvider());
     }
 
-    return autoConfiguredSdk;
+    setForceFlush(sdk);
+    OpenTelemetrySdkAccess.internalSetEarlySpans(new SdkEarlySpans(sdk));
+    GlobalOpenTelemetry.set(sdk);
+
+    return SdkAutoconfigureAccess.create(
+        sdk, SdkAutoconfigureAccess.getResource(autoConfiguredSdk), configProperties);
   }
 
   // Visible for testing
-  static ConfigProperties getDeclarativeConfigBridgedProperties(
-      EarlyInitAgentConfig earlyConfig, ConfigProvider configProvider) {
+  static ConfigProperties getDeclarativeConfigBridgedProperties(ConfigProvider configProvider) {
     return new DeclarativeConfigPropertiesBridgeBuilder()
         .addMapping("otel.javaagent", "agent")
         .addOverride("otel.instrumentation.common.default-enabled", defaultEnabled(configProvider))
         // these properties are used to initialize the SDK before the configuration file
         // is loaded for consistency, we pass them to the bridge, so that they can be read
         // later with the same value from the {@link DeclarativeConfigPropertiesBridge}
-        .addOverride("otel.javaagent.debug", earlyConfig.getBoolean("otel.javaagent.debug", false))
-        .addOverride("otel.javaagent.logging", earlyConfig.getString("otel.javaagent.logging"))
+        .addOverride("otel.javaagent.debug", EarlyInitAgentConfig.get().isDebug())
+        .addOverride("otel.javaagent.logging", EarlyInitAgentConfig.get().getLogging())
         .buildFromInstrumentationConfig(configProvider.getInstrumentationConfig());
   }
 
