@@ -37,7 +37,7 @@ public class AwsLambdaSingletons {
           GlobalOpenTelemetry.get(),
           INSTRUMENTATION_NAME,
           AgentCommonConfig.get().getKnownHttpRequestMethods());
-  private static final Duration FLUSH_TIMEOUT =
+  public static final Duration FLUSH_TIMEOUT =
       Duration.ofMillis(
           DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), "aws_lambda")
               .getLong(
