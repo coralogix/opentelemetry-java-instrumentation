@@ -2,8 +2,10 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import com.github.jk1.license.filter.LicenseBundleNormalizer
 import com.github.jk1.license.render.InventoryMarkdownReportRenderer
 import org.spdx.sbom.gradle.SpdxSbomTask
+import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.util.UUID
+import java.util.zip.ZipFile
 import java.util.regex.Pattern
 
 plugins {
@@ -34,9 +36,14 @@ val javaagentLibs by configurations.creating {
   isCanBeConsumed = false
   extendsFrom(baseJavaagentLibs)
 }
+// this configuration collects only the agent libs needed by the Lambda distro we ship
+val lambdaMinimalJavaagentLibs by configurations.creating {
+  isCanBeResolved = true
+  isCanBeConsumed = false
+}
 
 // exclude dependencies that are to be placed in bootstrap from agent libs - they won't be added to inst/
-listOf(baseJavaagentLibs, javaagentLibs).forEach {
+listOf(baseJavaagentLibs, javaagentLibs, lambdaMinimalJavaagentLibs).forEach {
   it.run {
     exclude("io.opentelemetry", "opentelemetry-api")
     exclude("io.opentelemetry", "opentelemetry-common")
@@ -46,6 +53,13 @@ listOf(baseJavaagentLibs, javaagentLibs).forEach {
     // events API and metrics advice API
     exclude("io.opentelemetry", "opentelemetry-api-incubator")
   }
+}
+lambdaMinimalJavaagentLibs.run {
+  exclude("io.opentelemetry.contrib", "opentelemetry-aws-xray-propagator")
+  exclude("com.fasterxml.jackson.core", "jackson-core")
+  exclude("com.fasterxml.jackson.core", "jackson-databind")
+  exclude("io.opentelemetry.instrumentation", "opentelemetry-instrumentation-api")
+  exclude("io.opentelemetry.instrumentation", "opentelemetry-instrumentation-api-incubator")
 }
 
 val licenseReportDependencies by configurations.creating {
@@ -101,6 +115,10 @@ dependencies {
   baseJavaagentLibs(project(":instrumentation:internal:internal-lambda:javaagent"))
   baseJavaagentLibs(project(":instrumentation:internal:internal-reflection:javaagent"))
   baseJavaagentLibs(project(":instrumentation:internal:internal-url-class-loader:javaagent"))
+
+  lambdaMinimalJavaagentLibs(project(":instrumentation:aws-lambda:aws-lambda-core-1.0:javaagent"))
+  lambdaMinimalJavaagentLibs(project(":instrumentation:aws-lambda:aws-lambda-events-2.2:javaagent"))
+  lambdaMinimalJavaagentLibs(project(":instrumentation:aws-sdk:aws-sdk-2.2:javaagent"))
 
   // concurrentlinkedhashmap-lru and weak-lock-free are copied in to the instrumentation-api module
   licenseReportDependencies("com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2")
@@ -194,6 +212,58 @@ tasks {
     archiveFileName.set("javaagentLibs-relocated.jar")
   }
 
+  val relocateLambdaMinimalJavaagentLibs by registering(ShadowJar::class) {
+    configurations = listOf(lambdaMinimalJavaagentLibs)
+
+    excludeBootstrapClasses()
+
+    duplicatesStrategy = DuplicatesStrategy.FAIL
+    filesMatching("META-INF/io/opentelemetry/instrumentation/**") {
+      duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
+    exclude("META-INF/LICENSE")
+    exclude("META-INF/NOTICE")
+    exclude("META-INF/maven/**")
+    exclude("META-INF/versions/*/OSGI-INF/MANIFEST.MF")
+
+    archiveFileName.set("lambdaMinimalJavaagentLibs-relocated.jar")
+  }
+
+  val mergeLambdaMinimalInstrumentationModules by registering {
+    dependsOn(relocateBaseJavaagentLibs, relocateLambdaMinimalJavaagentLibs)
+
+    val outputDir = layout.buildDirectory.dir("generated/lambdaMinimalServices")
+    val baseRelocatedJar = relocateBaseJavaagentLibs.flatMap { it.archiveFile }
+    val lambdaRelocatedJar = relocateLambdaMinimalJavaagentLibs.flatMap { it.archiveFile }
+    outputs.dir(outputDir)
+
+    doLast {
+      val servicePath = "META-INF/services/io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule"
+      val serviceLines = linkedSetOf<String>()
+
+      listOf(
+        baseRelocatedJar.get().asFile,
+        lambdaRelocatedJar.get().asFile
+      ).forEach { jarFile ->
+        ZipFile(jarFile).use { zip ->
+          zip.getEntry(servicePath)?.let { entry ->
+            zip.getInputStream(entry).bufferedReader(StandardCharsets.UTF_8).useLines { lines ->
+              lines.forEach { line ->
+                if (line.isNotBlank()) {
+                  serviceLines.add(line)
+                }
+              }
+            }
+          }
+        }
+      }
+
+      val outputFile = outputDir.get().file("inst/$servicePath").asFile
+      outputFile.parentFile.mkdirs()
+      outputFile.writeText(serviceLines.joinToString(separator = "\n", postfix = "\n"), StandardCharsets.UTF_8)
+    }
+  }
+
   // Includes everything needed for OOTB experience
   val shadowJar by existing(ShadowJar::class) {
     dependsOn(buildBootstrapLibs)
@@ -235,6 +305,34 @@ tasks {
     }
   }
 
+  val lambdaMinimalJavaagentJar by registering(ShadowJar::class) {
+    dependsOn(buildBootstrapLibs)
+    from(zipTree(buildBootstrapLibs.get().archiveFile))
+
+    dependsOn(relocateBaseJavaagentLibs)
+    isolateClasses(
+      relocateBaseJavaagentLibs.get().archiveFile,
+      setOf("META-INF/services/io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule")
+    )
+
+    dependsOn(relocateLambdaMinimalJavaagentLibs)
+    isolateClasses(
+      relocateLambdaMinimalJavaagentLibs.get().archiveFile,
+      setOf("META-INF/services/io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule")
+    )
+
+    dependsOn(mergeLambdaMinimalInstrumentationModules)
+    from(mergeLambdaMinimalInstrumentationModules.map { layout.buildDirectory.dir("generated/lambdaMinimalServices") })
+
+    duplicatesStrategy = DuplicatesStrategy.FAIL
+
+    archiveClassifier.set("lambda-minimal")
+
+    manifest {
+      attributes(shadowJar.get().manifest.attributes)
+    }
+  }
+
   jar {
     // Empty jar that cannot be used for anything and isn't published.
     archiveClassifier.set("dontuse")
@@ -244,13 +342,18 @@ tasks {
     isCanBeConsumed = true
     isCanBeResolved = false
   }
+  val lambdaMinimalJar by configurations.creating {
+    isCanBeConsumed = true
+    isCanBeResolved = false
+  }
 
   artifacts {
     add("baseJar", baseJavaagentJar)
+    add("lambdaMinimalJar", lambdaMinimalJavaagentJar)
   }
 
   assemble {
-    dependsOn(shadowJar, baseJavaagentJar)
+    dependsOn(shadowJar, baseJavaagentJar, lambdaMinimalJavaagentJar)
   }
 
   if (findProperty("removeJarVersionNumbers") == "true") {
@@ -412,18 +515,24 @@ licenseReport {
   filters = arrayOf(LicenseBundleNormalizer("$projectDir/license-normalizer-bundle.json", true))
 }
 
-fun CopySpec.isolateClasses(jar: Provider<RegularFile>) {
+fun CopySpec.isolateClasses(
+  jar: Provider<RegularFile>,
+  additionalExcludes: Set<String> = emptySet(),
+) {
   from(zipTree(jar)) {
     // important to keep prefix "inst" short, as it is prefixed to lots of strings in runtime mem
     into("inst")
     rename("(^.*)\\.class\$", "\$1.classdata")
     exclude("""^LICENSE$""")
     exclude("META-INF/LICENSE.txt")
+    exclude("META-INF/*LICENSE*")
+    exclude("META-INF/*NOTICE*")
     exclude("META-INF/INDEX.LIST")
     exclude("META-INF/*.DSA")
     exclude("META-INF/*.SF")
     exclude("META-INF/maven/**")
     exclude("META-INF/MANIFEST.MF")
+    additionalExcludes.forEach { exclude(it) }
   }
 }
 
