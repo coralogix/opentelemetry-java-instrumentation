@@ -14,9 +14,14 @@ import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.WrapperConfi
 import io.opentelemetry.instrumentation.awslambdaevents.common.v2_2.internal.AwsLambdaEventsInstrumenterFactory;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.ApiGatewayHttpTrigger;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.ApiGatewayRestTrigger;
+import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.CognitoTrigger;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.DynamoDBTrigger;
+import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.EventBridgeTrigger;
+import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.KinesisTrigger;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.S3Trigger;
+import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.SnsTrigger;
 import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.SqsTrigger;
+import io.opentelemetry.instrumentation.awslambdaevents.v2_2.internal.triggers.StepFunctionsTrigger;
 import io.opentelemetry.javaagent.bootstrap.internal.AgentCommonConfig;
 import java.time.Duration;
 
@@ -30,6 +35,11 @@ public class AwsLambdaSingletons {
             new S3Trigger(),
             new SqsTrigger(),
             new DynamoDBTrigger(),
+            new EventBridgeTrigger(),
+            new KinesisTrigger(),
+            new SnsTrigger(),
+            new CognitoTrigger(),
+            new StepFunctionsTrigger(),
           },
           GlobalOpenTelemetry.get());
   private static final AwsLambdaFunctionInstrumenter FUNCTION_INSTRUMENTER =
