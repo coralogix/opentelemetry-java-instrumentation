@@ -8,6 +8,7 @@ package io.opentelemetry.instrumentation.awssdk.v2_2.internal;
 import static io.opentelemetry.instrumentation.awssdk.v2_2.InputStreamCapture.toByteArrayWithLimit;
 import static io.opentelemetry.instrumentation.awssdk.v2_2.internal.AwsSdkRequestType.DYNAMODB;
 
+import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
@@ -16,12 +17,12 @@ import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.context.propagation.TextMapPropagator;
 import io.opentelemetry.contrib.awsxray.propagator.AwsXrayPropagator;
+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
+import io.opentelemetry.instrumentation.awssdk.v2_2.InputStreamCapture;
 import io.opentelemetry.instrumentation.api.internal.InstrumenterUtil;
 import io.opentelemetry.instrumentation.api.internal.SemconvStability;
 import io.opentelemetry.instrumentation.api.internal.Timer;
-import io.opentelemetry.instrumentation.api.internal.ConfigPropertiesUtil;
-import io.opentelemetry.instrumentation.awssdk.v2_2.InputStreamCapture;
 import io.opentelemetry.semconv.HttpAttributes;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -102,7 +103,9 @@ public final class TracingExecutionInterceptor implements ExecutionInterceptor {
 
   private static final int DEFAULT_OTEL_PAYLOAD_SIZE_LIMIT = 50 * 1024;
   private static final int OTEL_PAYLOAD_SIZE_LIMIT =
-      ConfigPropertiesUtil.getInt("otel.payload-size-limit", DEFAULT_OTEL_PAYLOAD_SIZE_LIMIT);
+      (int)
+          DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), "common")
+              .getLong("payload-size-limit", (long) DEFAULT_OTEL_PAYLOAD_SIZE_LIMIT);
 
   static final AttributeKey<String> HTTP_ERROR_MSG =
       AttributeKey.stringKey("aws.http.error_message");

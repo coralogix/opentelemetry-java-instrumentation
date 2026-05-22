@@ -29,9 +29,9 @@ public class TriggerUtils {
 
   static final int DEFAULT_OTEL_PAYLOAD_SIZE_LIMIT = 50 * 1024;
   static final int OTEL_PAYLOAD_SIZE_LIMIT =
-      DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), "common")
-          .getLong("payload-size-limit", (long) DEFAULT_OTEL_PAYLOAD_SIZE_LIMIT)
-          .intValue();
+      (int)
+          DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), "common")
+              .getLong("payload-size-limit", (long) DEFAULT_OTEL_PAYLOAD_SIZE_LIMIT);
 
   public static String limitedPayload(String s) {
     if (s == null) {

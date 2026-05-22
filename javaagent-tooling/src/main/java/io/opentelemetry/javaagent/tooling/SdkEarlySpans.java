@@ -4,8 +4,8 @@ import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
-import io.opentelemetry.instrumentation.api.internal.ConfigPropertiesUtil;
 import io.opentelemetry.javaagent.bootstrap.OpenTelemetrySdkAccess;
+import io.opentelemetry.javaagent.tooling.config.EarlyInitAgentConfig;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.trace.ReadWriteSpan;
 import io.opentelemetry.sdk.trace.data.LinkData;
@@ -19,7 +19,7 @@ class SdkEarlySpans implements OpenTelemetrySdkAccess.EarlySpans {
   private static final String TRACE_ID_ATTRIBUTE = "cx.internal.trace.id";
 
   private static final boolean EARLY_SPANS_ENABLED =
-      ConfigPropertiesUtil.getBoolean("otel.early-spans.enabled", true);
+      EarlyInitAgentConfig.get().getBoolean("otel.early-spans.enabled", true);
 
   private final OpenTelemetrySdk sdk;
   private final Tracer tracer;
