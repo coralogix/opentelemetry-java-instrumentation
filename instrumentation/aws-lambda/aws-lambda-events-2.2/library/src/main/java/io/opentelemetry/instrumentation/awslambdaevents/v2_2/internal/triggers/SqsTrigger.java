@@ -19,6 +19,7 @@ import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.Trigger;
 import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.TriggerMismatchException;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -94,7 +95,7 @@ public final class SqsTrigger extends Trigger {
 
     @Override
     public Iterable<String> keys(Map<String, SQSEvent.MessageAttribute> map) {
-      return map.keySet();
+      return map == null ? Collections.emptySet() : map.keySet();
     }
 
     @Override

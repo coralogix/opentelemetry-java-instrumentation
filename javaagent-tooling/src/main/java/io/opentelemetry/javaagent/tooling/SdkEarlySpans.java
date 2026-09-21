@@ -28,6 +28,7 @@ class SdkEarlySpans implements OpenTelemetrySdkAccess.EarlySpans {
     this.sdk = sdk;
     this.tracer = sdk.getTracerProvider()
         .tracerBuilder("coralogix-autoinstrumentation")
+        .setInstrumentationVersion(AgentVersion.VERSION)
         .build();
   }
 

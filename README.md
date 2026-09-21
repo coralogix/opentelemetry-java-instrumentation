@@ -33,7 +33,7 @@ If you are looking for documentation on using those.
 ## Getting Started
 
 Download
-the [latest version](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.30.0/opentelemetry-javaagent.jar).
+the [latest version](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.31.0/opentelemetry-javaagent.jar).
 
 This package includes the instrumentation agent as well as
 instrumentations for all supported libraries and all available data exporters.
@@ -59,7 +59,7 @@ for the full list of configuration items. For example:
 ```
 java -javaagent:path/to/opentelemetry-javaagent.jar \
      -Dotel.resource.attributes=service.name=your-service-name \
-     -Dotel.traces.exporter=zipkin \
+     -Dotel.traces.exporter=console \
      -jar myapp.jar
 ```
 
@@ -142,7 +142,6 @@ For more information about the maintainer role, see the [community repository](h
 - [Jack Berg](https://github.com/jack-berg), Grafana Labs
 - [Jason Plumb](https://github.com/breedx-splk), Splunk
 - [Jay DeLuca](https://github.com/jaydeluca), Grafana Labs
-- [Jean Bisutti](https://github.com/jeanbisutti), Microsoft
 - [John Watson](https://github.com/jkwatson), Sublime Security
 - [Jonas Kunz](https://github.com/JonasKunz), Elastic
 - [Steve Rao](https://github.com/steverao), Alibaba
@@ -152,6 +151,7 @@ For more information about the approver role, see the [community repository](htt
 
 ### Emeritus
 
+- [Jean Bisutti](https://github.com/jeanbisutti), Approver
 - [Mateusz Rzeszutek](https://github.com/mateuszrzeszutek), Maintainer
 - [Nikita Salnikov-Tarnovski](https://github.com/iNikem), Maintainer
 - [Tyler Benson](https://github.com/tylerbenson), Maintainer

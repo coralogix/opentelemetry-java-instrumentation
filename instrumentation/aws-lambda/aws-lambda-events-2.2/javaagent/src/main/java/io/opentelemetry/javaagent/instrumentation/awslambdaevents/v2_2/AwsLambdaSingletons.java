@@ -46,7 +46,8 @@ public class AwsLambdaSingletons {
       AwsLambdaEventsInstrumenterFactory.createInstrumenter(
           GlobalOpenTelemetry.get(),
           INSTRUMENTATION_NAME,
-          AgentCommonConfig.get().getKnownHttpRequestMethods());
+          AgentCommonConfig.get().getKnownHttpRequestMethods(),
+          AgentCommonConfig.get().getSensitiveQueryParameters());
   public static final Duration FLUSH_TIMEOUT =
       Duration.ofMillis(
           DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), "aws_lambda")

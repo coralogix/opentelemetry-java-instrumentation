@@ -5,6 +5,7 @@
 
 package io.opentelemetry.instrumentation.awssdk.v2_2.internal;
 
+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableMessagingSemconv;
 import static io.opentelemetry.instrumentation.awssdk.v2_2.InputStreamCapture.toByteArrayWithLimit;
 import static io.opentelemetry.instrumentation.awssdk.v2_2.internal.AwsSdkRequestType.DYNAMODB;
 import static io.opentelemetry.semconv.HttpAttributes.HTTP_RESPONSE_STATUS_CODE;
@@ -32,7 +33,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.Optional;
 import javax.annotation.Nullable;
 import org.slf4j.LoggerFactory;
@@ -88,6 +88,8 @@ public final class TracingExecutionInterceptor implements ExecutionInterceptor {
       new ExecutionAttribute<>(TracingExecutionInterceptor.class.getName() + ".SdkRequest");
   private static final ExecutionAttribute<RequestSpanFinisher> REQUEST_FINISHER_ATTRIBUTE =
       new ExecutionAttribute<>(TracingExecutionInterceptor.class.getName() + ".RequestFinisher");
+  private static final ExecutionAttribute<Timer> REQUEST_TIMER_ATTRIBUTE =
+      new ExecutionAttribute<>(TracingExecutionInterceptor.class.getName() + ".RequestTimer");
   static final ExecutionAttribute<TracingList> TRACING_MESSAGES_ATTRIBUTE =
       new ExecutionAttribute<>(TracingExecutionInterceptor.class.getName() + ".TracingMessages");
   private static final RequestHeaderSetter requestHeaderSetter = new RequestHeaderSetter();
@@ -96,6 +98,7 @@ public final class TracingExecutionInterceptor implements ExecutionInterceptor {
   private final Instrumenter<SqsReceiveRequest, Response> consumerReceiveInstrumenter;
   private final Instrumenter<SqsProcessRequest, Response> consumerProcessInstrumenter;
   private final Instrumenter<ExecutionAttributes, Response> producerInstrumenter;
+  private final Instrumenter<ExecutionAttributes, Response> settleInstrumenter;
   private final Instrumenter<ExecutionAttributes, Response> dynamoDbInstrumenter;
   private final Instrumenter<ExecutionAttributes, Response> bedrockRuntimeInstrumenter;
   private final Logger eventLogger;
@@ -141,6 +144,7 @@ public final class TracingExecutionInterceptor implements ExecutionInterceptor {
       Instrumenter<SqsReceiveRequest, Response> consumerReceiveInstrumenter,
       Instrumenter<SqsProcessRequest, Response> consumerProcessInstrumenter,
       Instrumenter<ExecutionAttributes, Response> producerInstrumenter,
+      Instrumenter<ExecutionAttributes, Response> settleInstrumenter,
       Instrumenter<ExecutionAttributes, Response> dynamoDbInstrumenter,
       Instrumenter<ExecutionAttributes, Response> bedrockRuntimeInstrumenter,
       Logger eventLogger,
@@ -153,6 +157,7 @@ public final class TracingExecutionInterceptor implements ExecutionInterceptor {
     this.consumerReceiveInstrumenter = consumerReceiveInstrumenter;
     this.consumerProcessInstrumenter = consumerProcessInstrumenter;
     this.producerInstrumenter = producerInstrumenter;
+    this.settleInstrumenter = settleInstrumenter;
     this.dynamoDbInstrumenter = dynamoDbInstrumenter;
     this.bedrockRuntimeInstrumenter = bedrockRuntimeInstrumenter;
     this.eventLogger = eventLogger;
@@ -201,7 +206,7 @@ public final class TracingExecutionInterceptor implements ExecutionInterceptor {
 
     RequestSpanFinisher requestFinisher;
     io.opentelemetry.context.Context otelContext;
-    Instant requestStart = Instant.now();
+    Timer requestTimer = Timer.start();
     // Skip creating request span for SqsClient.receiveMessage if there is no parent span and also
     // suppress the span from the underlying http client. Request/http client span appears in a
     // separate trace from message producer/consumer spans if there is no parent span just having
@@ -222,8 +227,8 @@ public final class TracingExecutionInterceptor implements ExecutionInterceptor {
                   finisherExecutionAttributes,
                   response,
                   exception,
-                  requestStart,
-                  Instant.now());
+                  requestTimer.startTime(),
+                  requestTimer.now());
             }
           };
     } else {
@@ -234,6 +239,7 @@ public final class TracingExecutionInterceptor implements ExecutionInterceptor {
     executionAttributes.putAttribute(PARENT_CONTEXT_ATTRIBUTE, parentOtelContext);
     executionAttributes.putAttribute(CONTEXT_ATTRIBUTE, otelContext);
     executionAttributes.putAttribute(REQUEST_FINISHER_ATTRIBUTE, requestFinisher);
+    executionAttributes.putAttribute(REQUEST_TIMER_ATTRIBUTE, requestTimer);
     if (executionAttributes
         .getAttribute(SdkExecutionAttribute.CLIENT_TYPE)
         .equals(ClientType.SYNC)) {
@@ -424,7 +430,7 @@ public final class TracingExecutionInterceptor implements ExecutionInterceptor {
     if (executionAttributes.getAttribute(SDK_HTTP_REQUEST_ATTRIBUTE) != null) {
       // Other special handling could be shortcut-&&ed after this (false is returned if not
       // handled).
-      Timer timer = Timer.start();
+      Timer timer = executionAttributes.getAttribute(REQUEST_TIMER_ATTRIBUTE);
       SqsAccess.afterReceiveMessageExecution(context, executionAttributes, this, timer);
     }
 
@@ -518,6 +524,7 @@ public final class TracingExecutionInterceptor implements ExecutionInterceptor {
     executionAttributes.putAttribute(AWS_SDK_REQUEST_ATTRIBUTE, null);
     executionAttributes.putAttribute(SDK_HTTP_REQUEST_ATTRIBUTE, null);
     executionAttributes.putAttribute(REQUEST_FINISHER_ATTRIBUTE, null);
+    executionAttributes.putAttribute(REQUEST_TIMER_ATTRIBUTE, null);
     executionAttributes.putAttribute(TRACING_MESSAGES_ATTRIBUTE, null);
   }
 
@@ -537,6 +544,9 @@ public final class TracingExecutionInterceptor implements ExecutionInterceptor {
       SdkRequest request, AwsSdkRequest awsSdkRequest) {
     if (SqsAccess.isSqsProducerRequest(request)) {
       return producerInstrumenter;
+    }
+    if (emitStableMessagingSemconv() && SqsAccess.isSqsDeleteRequest(request)) {
+      return settleInstrumenter;
     }
     if (BedrockRuntimeAccess.isBedrockRuntimeRequest(request)) {
       return bedrockRuntimeInstrumenter;
