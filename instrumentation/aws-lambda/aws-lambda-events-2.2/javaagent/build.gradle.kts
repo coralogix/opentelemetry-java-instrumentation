@@ -29,13 +29,40 @@ dependencies {
 
   library("com.amazonaws:aws-lambda-java-core:1.0.0")
   library("com.amazonaws:aws-lambda-java-events:3.3.1")
+  // Present in supported Lambda runtimes; required by Coralogix wrapper serialization helpers.
+  library("com.amazonaws:aws-lambda-java-serialization:1.1.5")
 
   testImplementation(project(":instrumentation:aws-lambda:aws-lambda-events-2.2:testing"))
   testInstrumentation(project(":instrumentation:aws-lambda:aws-lambda-core-1.0:javaagent"))
 }
 
 tasks {
-  test {
+  withType<Test>().configureEach {
     systemProperty("collectMetadata", otelProps.collectMetadata)
+  }
+
+  val testMessagingPreview = register<Test>("testMessagingPreview") {
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    jvmArgs("-Dotel.semconv-stability.preview=messaging")
+    systemProperty("metadataConfig", "otel.semconv-stability.preview=messaging")
+  }
+
+  val testBothSemconv = register<Test>("testBothSemconv") {
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    jvmArgs("-Dotel.semconv-stability.preview=messaging/dup")
+    systemProperty("metadataConfig", "otel.semconv-stability.preview=messaging/dup")
+  }
+
+  val testV3Preview = register<Test>("testV3Preview") {
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    jvmArgs("-Dotel.instrumentation.common.v3-preview=true")
+    systemProperty("metadataConfig", "otel.instrumentation.common.v3-preview=true")
+  }
+
+  check {
+    dependsOn(testMessagingPreview, testBothSemconv, testV3Preview)
   }
 }
