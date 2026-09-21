@@ -36,7 +36,7 @@ dependencies {
 
 testing {
   suites {
-    val testCoreOnly by registering(JvmTestSuite::class) {
+    register<JvmTestSuite>("testCoreOnly") {
       dependencies {
         implementation(project())
         implementation(project(":instrumentation:aws-sdk:aws-sdk-2.2:testing"))
@@ -49,7 +49,7 @@ testing {
       }
     }
 
-    val testLambda by registering(JvmTestSuite::class) {
+    register<JvmTestSuite>("testLambda") {
       dependencies {
         implementation(project())
         implementation(project(":instrumentation:aws-sdk:aws-sdk-2.2:testing"))
@@ -58,7 +58,7 @@ testing {
       }
     }
 
-    val testBedrockRuntime by registering(JvmTestSuite::class) {
+    register<JvmTestSuite>("testBedrockRuntime") {
       dependencies {
         implementation(project())
         implementation(project(":instrumentation:aws-sdk:aws-sdk-2.2:testing"))
@@ -77,14 +77,14 @@ tasks {
     systemProperty("testLatestDeps", otelProps.testLatestDeps)
   }
 
-  val testStableSemconv by registering(Test::class) {
+  val testStableSemconv = register<Test>("testStableSemconv") {
     testClassesDirs = sourceSets.test.get().output.classesDirs
     classpath = sourceSets.test.get().runtimeClasspath
 
     jvmArgs("-Dotel.semconv-stability.opt-in=database")
   }
 
-  val testCoreOnlyStableSemconv by registering(Test::class) {
+  val testCoreOnlyStableSemconv = register<Test>("testCoreOnlyStableSemconv") {
     val testCoreOnlySourceSet = sourceSets["testCoreOnly"]
     testClassesDirs = testCoreOnlySourceSet.output.classesDirs
     classpath = testCoreOnlySourceSet.runtimeClasspath
@@ -92,7 +92,7 @@ tasks {
     jvmArgs("-Dotel.semconv-stability.opt-in=database")
   }
 
-  val testExceptionSignalLogs by registering(Test::class) {
+  val testExceptionSignalLogs = register<Test>("testExceptionSignalLogs") {
     testClassesDirs = sourceSets.test.get().output.classesDirs
     classpath = sourceSets.test.get().runtimeClasspath
 
