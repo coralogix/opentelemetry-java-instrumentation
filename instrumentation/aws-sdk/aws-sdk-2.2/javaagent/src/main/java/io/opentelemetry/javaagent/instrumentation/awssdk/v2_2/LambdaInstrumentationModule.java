@@ -8,7 +8,7 @@ package io.opentelemetry.javaagent.instrumentation.awssdk.v2_2;
 import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;
 import static net.bytebuddy.matcher.ElementMatchers.none;
 import com.google.auto.service.AutoService;
-import io.opentelemetry.instrumentation.awssdk.v2_2.internal.LambdaAdviceBridge;
+import io.opentelemetry.instrumentation.awssdk.v2_2.internal.LambdaImpl;
 import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;
 import net.bytebuddy.asm.Advice;
@@ -40,9 +40,10 @@ public class LambdaInstrumentationModule extends AbstractAwsSdkInstrumentationMo
   public static class RegisterAdvice {
     @Advice.OnMethodExit(inline = false)
     public static void onExit() {
-      // (indirectly) using LambdaImpl class here to make sure it is available from LambdaAccess
+      // using LambdaImpl class here to make sure it is available from LambdaAccess
       // (injected into app classloader) and checked by Muzzle
-      LambdaAdviceBridge.referenceForMuzzleOnly();
+      throw new UnsupportedOperationException(
+          LambdaImpl.class.getName() + " referencing for muzzle, should never be actually called");
     }
   }
 }

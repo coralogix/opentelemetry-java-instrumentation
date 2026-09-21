@@ -6,11 +6,15 @@
 package io.opentelemetry.javaagent.instrumentation.vertx.sqlclient.v4_0;
 
 import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;
+import static io.opentelemetry.instrumentation.testing.junit.db.DbClientMetricsTestUtil.assertDurationMetric;
 import static io.opentelemetry.instrumentation.testing.junit.db.SemconvStabilityUtil.maybeStable;
 import static io.opentelemetry.instrumentation.testing.junit.service.SemconvServiceStabilityUtil.maybeStablePeerService;
 import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;
 import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.satisfies;
+import static io.opentelemetry.semconv.DbAttributes.DB_NAMESPACE;
+import static io.opentelemetry.semconv.DbAttributes.DB_OPERATION_BATCH_SIZE;
 import static io.opentelemetry.semconv.DbAttributes.DB_QUERY_SUMMARY;
+import static io.opentelemetry.semconv.DbAttributes.DB_SYSTEM_NAME;
 import static io.opentelemetry.semconv.ErrorAttributes.ERROR_TYPE;
 import static io.opentelemetry.semconv.ExceptionAttributes.EXCEPTION_MESSAGE;
 import static io.opentelemetry.semconv.ExceptionAttributes.EXCEPTION_STACKTRACE;
@@ -137,7 +141,7 @@ class VertxSqlClientTest {
             trace.hasSpansSatisfyingExactly(
                 span -> span.hasName("parent").hasKind(SpanKind.INTERNAL),
                 span ->
-                    span.hasName(emitStableDatabaseSemconv() ? "SELECT test" : "SELECT tempdb.test")
+                    span.hasName(emitStableDatabaseSemconv() ? "select test" : "SELECT tempdb.test")
                         .hasKind(SpanKind.CLIENT)
                         .hasParent(trace.getSpan(0))
                         .hasAttributesSatisfyingExactly(
@@ -149,7 +153,7 @@ class VertxSqlClientTest {
                             equalTo(maybeStable(DB_STATEMENT), "select * from test"),
                             equalTo(
                                 DB_QUERY_SUMMARY,
-                                emitStableDatabaseSemconv() ? "SELECT test" : null),
+                                emitStableDatabaseSemconv() ? "select test" : null),
                             equalTo(
                                 maybeStable(DB_OPERATION),
                                 emitStableDatabaseSemconv() ? null : "SELECT"),
@@ -236,11 +240,14 @@ class VertxSqlClientTest {
 
     assertPreparedSelect();
 
-    if (emitStableDatabaseSemconv()) {
-      testing.waitAndAssertMetrics(
-          "io.opentelemetry.vertx-sql-client-4.0",
-          metric -> metric.hasName("db.client.operation.duration"));
-    }
+    assertDurationMetric(
+        testing,
+        "io.opentelemetry.vertx-sql-client-4.0",
+        DB_SYSTEM_NAME,
+        DB_NAMESPACE,
+        DB_QUERY_SUMMARY,
+        SERVER_ADDRESS,
+        SERVER_PORT);
   }
 
   private static void assertPreparedSelect() {
@@ -249,7 +256,7 @@ class VertxSqlClientTest {
             trace.hasSpansSatisfyingExactly(
                 span -> span.hasName("parent").hasKind(SpanKind.INTERNAL),
                 span ->
-                    span.hasName(emitStableDatabaseSemconv() ? "SELECT test" : "SELECT tempdb.test")
+                    span.hasName(emitStableDatabaseSemconv() ? "select test" : "SELECT tempdb.test")
                         .hasKind(SpanKind.CLIENT)
                         .hasParent(trace.getSpan(0))
                         .hasAttributesSatisfyingExactly(
@@ -261,7 +268,7 @@ class VertxSqlClientTest {
                             equalTo(maybeStable(DB_STATEMENT), "select * from test where id = $1"),
                             equalTo(
                                 DB_QUERY_SUMMARY,
-                                emitStableDatabaseSemconv() ? "SELECT test" : null),
+                                emitStableDatabaseSemconv() ? "select test" : null),
                             equalTo(
                                 maybeStable(DB_OPERATION),
                                 emitStableDatabaseSemconv() ? null : "SELECT"),
@@ -290,7 +297,10 @@ class VertxSqlClientTest {
             trace.hasSpansSatisfyingExactly(
                 span -> span.hasName("parent").hasKind(SpanKind.INTERNAL),
                 span ->
-                    span.hasName(emitStableDatabaseSemconv() ? "INSERT test" : "INSERT tempdb.test")
+                    span.hasName(
+                            emitStableDatabaseSemconv()
+                                ? "BATCH insert test"
+                                : "INSERT tempdb.test")
                         .hasKind(SpanKind.CLIENT)
                         .hasParent(trace.getSpan(0))
                         .hasAttributesSatisfyingExactly(
@@ -304,7 +314,9 @@ class VertxSqlClientTest {
                                 "insert into test values ($1, $2) returning *"),
                             equalTo(
                                 DB_QUERY_SUMMARY,
-                                emitStableDatabaseSemconv() ? "INSERT test" : null),
+                                emitStableDatabaseSemconv() ? "BATCH insert test" : null),
+                            equalTo(
+                                DB_OPERATION_BATCH_SIZE, emitStableDatabaseSemconv() ? 2L : null),
                             equalTo(
                                 maybeStable(DB_OPERATION),
                                 emitStableDatabaseSemconv() ? null : "INSERT"),
@@ -390,7 +402,7 @@ class VertxSqlClientTest {
                     span -> span.hasName("parent").hasKind(SpanKind.INTERNAL),
                     span ->
                         span.hasName(
-                                emitStableDatabaseSemconv() ? "SELECT test" : "SELECT tempdb.test")
+                                emitStableDatabaseSemconv() ? "select test" : "SELECT tempdb.test")
                             .hasKind(SpanKind.CLIENT)
                             .hasParent(trace.getSpan(0))
                             .hasAttributesSatisfyingExactly(
@@ -402,7 +414,7 @@ class VertxSqlClientTest {
                                 equalTo(maybeStable(DB_STATEMENT), "select * from test"),
                                 equalTo(
                                     DB_QUERY_SUMMARY,
-                                    emitStableDatabaseSemconv() ? "SELECT test" : null),
+                                    emitStableDatabaseSemconv() ? "select test" : null),
                                 equalTo(
                                     maybeStable(DB_OPERATION),
                                     emitStableDatabaseSemconv() ? null : "SELECT"),
@@ -467,7 +479,7 @@ class VertxSqlClientTest {
                     span -> span.hasName("parent").hasKind(SpanKind.INTERNAL),
                     span ->
                         span.hasName(
-                                emitStableDatabaseSemconv() ? "SELECT test" : "SELECT tempdb.test")
+                                emitStableDatabaseSemconv() ? "select test" : "SELECT tempdb.test")
                             .hasKind(SpanKind.CLIENT)
                             .hasParent(trace.getSpan(0))
                             .hasAttributesSatisfyingExactly(
@@ -480,7 +492,7 @@ class VertxSqlClientTest {
                                     maybeStable(DB_STATEMENT), "select * from test where id = $1"),
                                 equalTo(
                                     DB_QUERY_SUMMARY,
-                                    emitStableDatabaseSemconv() ? "SELECT test" : null),
+                                    emitStableDatabaseSemconv() ? "select test" : null),
                                 equalTo(
                                     maybeStable(DB_OPERATION),
                                     emitStableDatabaseSemconv() ? null : "SELECT"),
