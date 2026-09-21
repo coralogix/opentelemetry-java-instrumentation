@@ -18,7 +18,7 @@ To enable collection of the predefined metrics, specify a list of targets as the
 
 ```bash
 $ java -javaagent:path/to/opentelemetry-javaagent.jar \
-     -Dotel.jmx.target.system=jetty,kafka-broker \
+     -Dotel.jmx.target.system=jetty,experimental-kafka-broker \
      ... \
      -jar myapp.jar
 ```
@@ -28,8 +28,8 @@ No targets are enabled by default. The supported target environments are listed 
 - [activemq](library/activemq.md)
 - [camel](library/camel.md)
 - [jetty](library/jetty.md)
-- [kafka-broker](javaagent/kafka-broker.md)
-- [kafka-connect](library/kafka-connect.md)
+- [experimental-kafka-broker](javaagent/kafka-broker.md)
+- [experimental-kafka-connect](library/kafka-connect.md)
 - [tomcat](library/tomcat.md)
 - [wildfly](library/wildfly.md)
 - [hadoop](library/hadoop.md)
@@ -335,7 +335,7 @@ If such a conversion is not available, then an error is reported during JMX metr
 Currently available unit conversions:
 
 | `sourceUnit` | `unit` |
-|--------------|--------|
+| ------------ | ------ |
 | ms           | s      |
 | us           | s      |
 | ns           | s      |
@@ -361,7 +361,7 @@ rules:
 ### Filtering negative values
 
 Sometimes a negative value is returned by the MBean implementation when a metric is not available or not supported.
-For example, [`OperatingSystemMXBean.getProcessCpuLoad`](https://docs.oracle.com/javase/7/docs/jre/api/management/extension/com/sun/management/OperatingSystemMXBean.html#getProcessCpuLoad()) can return a negative value.
+For example, [`OperatingSystemMXBean.getProcessCpuLoad`](<https://docs.oracle.com/javase/7/docs/jre/api/management/extension/com/sun/management/OperatingSystemMXBean.html#getProcessCpuLoad()>) can return a negative value.
 
 In this case, it is recommended to filter out the negative values by setting the `dropNegativeValues` metric (or rule) property to `true`, it is set to `false` by default.
 
@@ -460,7 +460,7 @@ rules:                                # start of list of configuration rules
 The following table explains the used terms with more details.
 
 | Syntactic Element  | Description                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-|--------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | OBJECTNAME         | A syntactically valid string representing an [ObjectName](https://docs.oracle.com/javase/8/docs/api/javax/management/ObjectName.html#ObjectName-java.lang.String-).                                                                                                                                                                                                                                                                                 |
 | ATTRIBUTE          | Any well-formed string that can be used as a metric [attribute](https://opentelemetry.io/docs/specs/otel/common/#attribute).                                                                                                                                                                                                                                                                                                                        |
 | ATTR               | A non-empty string used as a name of the MBean attribute. The MBean attribute value must be a String, otherwise the specified metric attribute will not be used.                                                                                                                                                                                                                                                                                    |

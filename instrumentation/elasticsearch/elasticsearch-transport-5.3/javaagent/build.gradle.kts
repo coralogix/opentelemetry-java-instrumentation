@@ -37,13 +37,13 @@ dependencies {
     isTransitive = false
   }
 
-  implementation(project(":instrumentation:elasticsearch:elasticsearch-transport-common:javaagent"))
+  implementation(project(":instrumentation:elasticsearch:elasticsearch-transport-common-5.0:javaagent"))
 
   testInstrumentation(project(":instrumentation:apache-httpasyncclient-4.1:javaagent"))
   testInstrumentation(project(":instrumentation:netty:netty-4.1:javaagent"))
   testInstrumentation(project(":instrumentation:spring:spring-data:spring-data-1.8:javaagent"))
 
-  testImplementation(project(":instrumentation:elasticsearch:elasticsearch-transport-common:testing"))
+  testImplementation(project(":instrumentation:elasticsearch:elasticsearch-transport-common-5.0:testing"))
   testImplementation("org.apache.logging.log4j:log4j-core:2.11.0")
   testImplementation("org.apache.logging.log4j:log4j-api:2.11.0")
   testImplementation("com.google.guava:guava")
@@ -54,7 +54,6 @@ dependencies {
 
   testLibrary("org.springframework.data:spring-data-elasticsearch:3.0.0.RELEASE")
 
-  latestDepTestLibrary("org.elasticsearch.plugin:transport-netty3-client:5.+") // see elasticsearch-transport-6.0 module
   latestDepTestLibrary("org.elasticsearch.client:transport:5.+") // see elasticsearch-transport-6.0 module
   latestDepTestLibrary("org.springframework.data:spring-data-elasticsearch:3.0.+") // see elasticsearch-transport-6.0 module
 }
